@@ -49,8 +49,8 @@ struct AssetInScene {
 struct Motif {
         uint256 tokenId;
         string name;
-        uint256 lat;
-        uint256 lng;
+        int32 lat;
+        int32 lng;
         uint16 lookingDirection;
         uint16 horizon;
         string svg;

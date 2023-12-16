@@ -2,28 +2,155 @@
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./SunCalc.sol";
+import "./BasicMotif.sol";
+import "./Assets.sol";
 
 library NDUtils {
 using Strings for uint256;
 using Strings for int256;
+using Strings for int16;
 
-//bytes constant DATA = hex"032a010b00b90208015700f700860174006f00670073006d0063005e0052004b0045003b003800380036003500340033003200310030002f002f002e002d002c002b002a00290028012b00f2011800e7010600d501f400c301ea00b101e000a201d6009301cc008401c2007501b8006601ae005800a4004b009e003e0098003300920028008c001d0086001200800007007a00fb007500f4006f00ed006900e6006300df005d00d8005700d1005100ca004b00c4004500bd003f00b7003900b1003300ab002d00a50027009f00";
+int constant viewingRangeHorizontal = 120;
+int constant viewingRangeVertical = 60;
+int constant skyWidth = 1080;
 
  struct SkyColor {
         int altitude;
         string color;
     }
 
-    
-     function randomNum(uint256 nonce, uint256 min, uint256 max) public view returns (uint) {
+    struct SceneElement {
+        uint y;
+        string svg;
+    }
+
+    function renderNFT(Motif memory motif, uint256 timestamp) public pure returns (string memory) {
+        string memory svg = motif.svg;
+        (int256 azimuth, int256 altitude) = SunCalc.getPosition(motif.lat, motif.lng, timestamp);
+        return svg;   
+    }
+
+    function renderMainScene(string memory svg, uint256 lat, uint256 lng, uint256 timestamp, uint256 tokenID, SceneInMotif[] memory scenes) public pure returns (string memory) {
+        string memory nightMaskSvg = "";
+
+        for (uint i = 0; i < scenes.length; i++) {
+            SceneInMotif memory scene = scenes[i];
+            (string memory sceneSvg, string memory sceneMaskSvg) = renderSceneAssets(scene.assets, timestamp, tokenID, scene.viewingRange, lat, lng);
+            svg = replace(svg, string.concat("<!--", scene.name, "-->"), sceneSvg);
+            nightMaskSvg = string.concat(nightMaskSvg, sceneMaskSvg);
+        }
+
+        svg = replace(svg, "<!--maskedassets-->", nightMaskSvg);
+        return svg;
+    }
+
+    function renderSceneAssets(AssetInScene[] memory assets, uint256 timestamp, uint256 tokenID, uint256[4] memory area, uint256 lat, uint256 lng) public pure returns (string memory sceneSvg, string memory sceneMaskSvg) {
+         
+        SceneElement [] memory elements = new SceneElement[](assets.length);
+        sceneMaskSvg = "";
+
+        for (uint i = 0; i < assets.length; i++) {
+            AssetInScene memory asset = assets[i];
+
+            uint256 y = area[1] + randomNum(string.concat(timestamp.toString(), asset.name), timestamp, 0, area[3]);
+            uint256 x = area[0] + randomNum(string.concat(timestamp.toString(), asset.name), timestamp, 0, area[2]);
+
+            string memory assetSvg = Assets.getAsset(asset.name);
+            assetSvg = setRandomColor(assetSvg, string.concat(timestamp.toString(), asset.name), timestamp);
+            assetSvg = string.concat('<g transform="translate(", x.toString(), ", ", y.toString(), ") scale(1, 1) \">", assetSvg, "</g>');
+
+            elements[i] = SceneElement(y, assetSvg);
+
+            if (Assets.hasNightMask(asset.name)) {
+                string memory maskName = Assets.getNightMask(asset.name);
+                sceneMaskSvg = string.concat(sceneMaskSvg, "<use href=\"#", maskName, "\" transform=\"translate(", x.toString(), ", ", y.toString(), ") scale(1, 1)\"/>");
+            }
+        }
+
+         uint n = elements.length;
+        for (uint i = 0; i < n; i++) {
+            for (uint j = 0; j < n - i - 1; j++) {
+                if (elements[j].y > elements[j + 1].y) {
+                    // Elemente tauschen
+                    SceneElement memory temp = elements[j];
+                    elements[j] = elements[j + 1];
+                    elements[j + 1] = temp;
+                }
+            }
+        }
+
+       
+
+        for (uint i = 0; i < elements.length; i++) {
+            sceneSvg = string.concat(sceneSvg, elements[i].svg);
+        }
+
+        return (sceneSvg, sceneMaskSvg);
+    }
 
 
-        require(min < max, "Min should be less than max");
-        uint randomValue = uint(keccak256(abi.encodePacked(block.timestamp, nonce)));
+     function renderSun(string memory svg, uint skyHeight, int16 azimuth, int16 altitude, uint lookingDirection) public pure returns (string memory) {
+        if (altitude > -12 && altitude <= viewingRangeVertical + 12) {
+            int diffAngle = int(azimuth) - int(lookingDirection) + 180;
+            diffAngle = (diffAngle % 360) - 180;
+
+            if (diffAngle < int(viewingRangeHorizontal) / 2 && diffAngle > - viewingRangeHorizontal / 2) {
+                int x = diffAngle +  viewingRangeHorizontal  / 2 * skyWidth / viewingRangeHorizontal;
+                int y = int(skyHeight) - altitude * int(skyHeight) / viewingRangeVertical;
+
+                return string.concat(
+                    svg, 
+                    "<g> <circle cx='", x.toStringSigned(), 
+                    "' cy='", y.toStringSigned(), 
+                    "' r='58' fill='#fff' /> <circle cx='", 
+                    x.toStringSigned(), "' cy='", 
+                    y.toStringSigned(), 
+                    "' r='95' fill='#fff' opacity='0.26' /></g>"
+                );
+            }
+        }
+        return svg;
+    }
+
+       function applyNight(string memory svg, int256 altitude) public pure returns (string memory) {
+        // Konstanten in e18
+        int256 altitudeThresholdForFullNight = -18 * 10**18;
+        int256 opacityFactor = 22 * 10**18;
+
+        uint256 opacity;
+        if (altitude < altitudeThresholdForFullNight) {
+            opacity = 100; // Vollständige Opazität, entspricht 1.00
+        } else if (altitude < 0 && altitude > altitudeThresholdForFullNight) {
+            opacity = uint256(-altitude * 100 / opacityFactor); // Anpassung der Opazität
+        } else {
+            opacity = 0; // Keine Opazität
+        }
+
+        // Umwandeln der Opazität in einen String mit zwei Dezimalstellen
+        string memory opacityString = renderDecimal(int256(opacity));
+
+        // Erstellen des Nacht-Strings mit Opazität
+        string memory night = string.concat(
+            '<rect mask="url(#nightMask)" style="mix-blend-mode:multiply" width="100%" height="100%" fill="#0F3327" opacity=',
+            opacityString,
+            '></rect>'
+        );
+
+        // Ersetzen des Platzhalters <!--night--> im SVG
+        return replace(svg, "<!--night-->", night);
+    }
+
+     function randomNum(string memory nonce, uint256 timestamp, uint256 min, uint256 max) public pure returns (uint) {
+        require(min < max, "min>max");
+        uint randomValue = uint(keccak256(abi.encodePacked(timestamp, nonce)));
         return min + (randomValue % (max - min + 1));
     }
 
-     function setUseTags(string memory svgTemplate, string memory ref, int16[] memory positions, bool hasScale, string memory placeholder)
+    function randomNum(uint256 nonce, uint256 timestamp, uint256 min, uint256 max) public pure returns (uint) {
+        return randomNum(nonce.toString(), timestamp, min, max);
+    }
+
+     function setUseTags(string memory svgTemplate, string memory ref, int16[] memory positions, bool hasScale, bytes5 placeholder)
         public
         pure
         returns (string memory)
@@ -32,9 +159,9 @@ using Strings for int256;
         uint256 iterationStep = hasScale ? 3 : 2;
 
         for (uint256 i = 0; i < positions.length; i += iterationStep) {
-            string memory x = (int256(positions[i]).toStringSigned());
-            string memory y = (int256(positions[i + 1]).toStringSigned());
-            string memory scale = hasScale ? (int256(positions[i + 2])).toStringSigned() : "1";
+            string memory x = positions[i].toStringSigned();
+            string memory y = positions[i + 1].toStringSigned();
+            string memory scale = hasScale ? positions[i + 2].toStringSigned() : "1";
             
             useTags = string(abi.encodePacked(
                 useTags,
@@ -42,20 +169,21 @@ using Strings for int256;
             ));
         }
 
-        return replace(svgTemplate, string(abi.encodePacked("<!--", placeholder, "-->")), useTags);
+        return replace(svgTemplate, string(abi.encodePacked("<!--", bytes5ToString(placeholder), "-->")), useTags);
     } 
 
 
-    function setUseRotations(string memory svg, string memory ref, uint16[] memory rotations, int16[2] memory rotationAnchor) public pure returns (string memory) {
+    // is used for flowers and few plants
+    function setUseRotations(string memory svg, bytes5 ref, int16[] memory rotations, int16[2] memory rotationAnchor) public pure returns (string memory) {
         string memory useTags = "";
 
         for (uint256 i = 0; i < rotations.length; i++) {
             useTags = string.concat(
                 useTags,
                 '<use href="#',
-                ref,
+                bytes5ToString(ref),
                 '" transform="rotate(',
-                uint256(rotations[i]).toString(),
+                int256(rotations[i]).toStringSigned(),
                 ' ',
                 int256(rotationAnchor[0]).toStringSigned(),
                 ' ',
@@ -64,18 +192,15 @@ using Strings for int256;
             );
         }
 
-        return replace(svg, string.concat('<!--', ref, '-->'), useTags);
+        return replace(svg, string.concat('<!--', bytes5ToString(ref), '-->'), useTags);
     }
 
 
 
-    // Funktion, um eine zufällige Farbe im SVG-String zu setzen
-    function setRandomColor(string memory svg, uint256 salt) public view returns (string memory) {
-        /* if (bytes(svg).length == 0 || !contains(svg, "<!--rdColor-->")) {
-            return svg;
-        } */
+    function setRandomColor(string memory svg, string memory salt, uint256 timestamp) public pure returns (string memory) {
 
-        uint256 rdIndex = randomNum(salt, 0,  16);
+
+        uint256 rdIndex = randomNum(salt, timestamp, 0,  16);
         string memory rdColor = getColorByIndex(rdIndex);
         return replace(svg, "<!--rdColor-->", rdColor);
     }
@@ -117,6 +242,7 @@ using Strings for int256;
             }
         }
 
+        //can never happen        
         return '#000000'; 
     }
 
@@ -126,60 +252,27 @@ using Strings for int256;
         string memory fullFlowerStick;
         {
 
-             // Dynamisches Array für petalRotationAnchor
         int16[2] memory petalRotationAnchor = [int16(0), int16(-75)];
-        // SVG-Vorlagen
         string memory flowerStick = '<g fill="#9bb224"><rect x="-4" y="-74" width="8" height="74"/><!--leaf--></g>';
-
-        string memory blossom = ''; //'<g style="transform: rotateY(<!--azi-->) rotateX(<!--alt-->); transform-box:fill-box; transform-origin:center"><g fill="gold"><path d="M21-85C28-91 28-102 28-102C28-102 18-102 11-95C5-89 5-78 5-78C5-78 15-79 21-85Z" id="sunPetal"/><!--sunPetal--></g><circle fill="<!--fcolor-->" cx="0" cy="-75" r="<!--fradius-->"></circle></g>';
-
-
-       /* uint256 length = DATA.length / 2;
-        uint16[] memory petalRotations = new uint16[](length);
-
-        for (uint256 i = 0; i < length; i++) {
-            uint16 value = (uint16(uint8(DATA[i * 2])) << 8) + uint16(uint8(DATA[i * 2 + 1]));
-            petalRotations[i] = value;
-        } */
-
-
-         uint16[11] memory fixedPetalRotations = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330 ];
-
-
-        // Dynamisches Array erstellen
-        // uint16[] memory petalRotations = new uint16[](fixedPetalRotations.length);
-
-        // // Elemente aus dem festen Array in das dynamische Array kopieren
-        // for (uint i = 0; i < fixedPetalRotations.length; i++) {
-        //     petalRotations[i] = fixedPetalRotations[i];
-        // }
-        
-
-        // int16[] memory leafPos = new int16[](2);
+        string memory blossom = '<g style="transform: rotateY(<!--azi-->) rotateX(<!--alt-->); transform-box:fill-box; transform-origin:center"><g fill="gold"><path d="M21-85C28-91 28-102 28-102C28-102 18-102 11-95C5-89 5-78 5-78C5-78 15-79 21-85Z" id="sunPetal"/><!--petal--></g><circle fill="<!--fcolor-->" cx="0" cy="-75" r="<!--fradius-->"></circle></g>';
+        int16[] memory petalRotations = bytesToInt16Array(hex"001E003C005A0078009600B400D200F0010E012C014A");
+        int16[] memory leafPos = new int16[](2);
         // //[-3, 71]
-        // leafPos[0] = -3;
-        // leafPos[1] = 71;
+        leafPos[0] = -3;
+        leafPos[1] = 71;
 
 
         // Petals und Flower Stick generieren
-     //   fullBlossom = setUseRotations(blossom, "sunPetal", petalRotations, petalRotationAnchor);
-      //  fullFlowerStick = setUseTags(flowerStick, "sunPetal", leafPos , false, "leaf");
+        fullBlossom = setUseRotations(blossom, "petal", petalRotations, petalRotationAnchor);
+        fullFlowerStick = setUseTags(flowerStick, "petal", leafPos , false, "leaf");
 
         }
 
-        
-        
-        // Konstanten definieren
         uint256 frontRadius = 18;
         string memory frontColor = "#aa7035";
         uint256 backRadius = 26;
         string memory backColor = "#9bb224";
        
-
-
-
-       
-
 
         int256 angle = azimuth - lookingDirection;
         string memory flowerSvg;
@@ -219,7 +312,6 @@ using Strings for int256;
         return replace(svg, "<!--flower-->", flowerSvg);
     }
 
-
     function computeStarttime(
         uint timestamp,
         uint checkInterval,
@@ -239,13 +331,13 @@ using Strings for int256;
         
         {
         // Anpassung der Zeitstempel basierend auf Sonnenauf- und -untergang
-      /*   if (dayNight == 0) {
+         if (dayNight == 0) {
             (uint sunrise, uint sunset) = SunCalc.getSunRiseSet(timestamp, lat, lng);
             (minStartTime, maxStartTime, isTimeFrameValid) = adjustTimeStampsForAssetVisibility(minStartTime, maxStartTime, sunrise, sunset, dayNight, 0, maxDuration);
             if (!isTimeFrameValid) {
                 return new uint[](0);
             }
-        } */
+        } 
         }
         uint lastCheckTimestamp = maxStartTime - (maxStartTime % checkInterval);
         uint firstCheckTimestamp = minStartTime - (minStartTime % checkInterval);
@@ -254,17 +346,17 @@ using Strings for int256;
         uint[] memory visibleStartTimes = new uint[](checkCount);
         uint visibleCount = 0;
 
-        /* for (uint i = 0; i < checkCount; i++) {
+         for (uint i = 0; i < checkCount; i++) {
             uint checkTimestamp = firstCheckTimestamp + i * checkInterval;
-            if (randomNum(checkTimestamp + salt, 0, 100) < appearanceProbability) {
-                uint startTime = checkTimestamp + randomNum(checkTimestamp + salt, 0, possibleOffset);
-                uint endTime = startTime + randomNum(startTime, minDuration, maxDuration);
+            if (randomNum(checkTimestamp + salt, timestamp, 0, 100) < appearanceProbability) {
+                uint startTime = checkTimestamp + randomNum(checkTimestamp + salt, timestamp, 0, possibleOffset);
+                uint endTime = startTime + randomNum(startTime, timestamp, minDuration, maxDuration);
                 if (startTime <= timestamp && endTime >= timestamp && startTime >= minStartTime) {
                     visibleStartTimes[visibleCount] = startTime;
                     visibleCount++;
                 }
             }
-        } */
+        } 
         uint[] memory actualVisible = new uint[](visibleCount);
         for (uint i = 0; i < visibleCount; i++) {
             actualVisible[i] = visibleStartTimes[i];
@@ -317,6 +409,38 @@ using Strings for int256;
         }
 
         return (minStartTime, maxStartTime, isTimeFrameValid);
+    }
+
+     function bytes5ToString(bytes5 _bytes) public pure returns (string memory) {
+        // Bestimmen der tatsächlichen Länge des bytes5 (Null-Bytes am Ende ignorieren)
+        uint8 actualLength = 0;
+        for (uint8 i = 0; i < 5; i++) {
+            if (_bytes[i] == 0) {
+                break;
+            }
+            actualLength++;
+        }
+
+        // Erstellen eines neuen bytes-Arrays der tatsächlichen Länge und Konvertieren
+        bytes memory buffer = new bytes(actualLength);
+        for (uint8 i = 0; i < actualLength; i++) {
+            buffer[i] = _bytes[i];
+        }
+
+        return string(buffer);
+    }
+
+    function bytesToInt16Array(bytes memory data) public pure returns (int16[] memory) {
+        require(data.length % 2 == 0, "bytes length not even");
+
+        int16[] memory intArray = new int16[](data.length / 2);
+        for (uint i = 0; i < data.length; i += 2) {
+            uint16 uValue = (uint16(uint8(data[i])) << 8) | uint16(uint8(data[i + 1]));
+            int16 value = int16(uValue);
+            intArray[i / 2] = value;
+        }
+
+        return intArray;
     }
 
 
@@ -409,6 +533,26 @@ using Strings for int256;
     function abs(int x) private pure returns (int) {
     return x >= 0 ? x : -x;
 }
+
+function renderDecimal(int256 value) public pure returns (string memory) {
+        int256 integerPart = value / 100;
+        int256 decimalPart = abs(value % 100);
+
+        return string.concat(
+            integerPart.toStringSigned(),
+            ".",
+            padZeroes(decimalPart.toStringSigned(), 2)
+        );
+    }
+
+
+
+    function padZeroes(string memory number, uint256 length) private pure returns (string memory) {
+        while(bytes(number).length < length) {
+            number = string.concat("0", number);
+        }
+        return number;
+    }
 
    
 }

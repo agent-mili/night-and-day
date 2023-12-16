@@ -18,8 +18,8 @@ library Colosseum {
    // bytes constant rectData = '0033015700D10057005E00A00057005E00D8001600410057005E0022001D0057005E00A80016002C002200160028001900220016001C00120016001D002200160016001200220016001C0022001600120010001A0016002200';
 
     
-    uint256 constant lat = 30_044_419e12;
-    uint256 constant lng = 31_235_647e12;
+    int32 constant lat = 30_044_419;
+    int32 constant lng = 31_235_647;
     uint16 constant lookingDirection = 0;
     uint16 constant horizont = 350;
     string constant name = "collosseum";
