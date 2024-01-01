@@ -17,6 +17,7 @@ enum MotifType{
 
 
 struct Replacement {
+    uint256 tokenId;
     ObjectType tag;
     RenderDataType dataType;
     bytes data;
@@ -55,7 +56,6 @@ struct Motif {
         uint16 horizon;
         string svg;
         SceneInMotif[] scenes;
-        Replacement[] replacements;
         MotifType motifType;
     }
 interface IMotif {
