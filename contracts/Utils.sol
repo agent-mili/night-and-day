@@ -30,7 +30,38 @@ int constant skyWidth = 1080;
         return svg;   
     }
 
-    function renderMainScene(string memory svg, uint256 lat, uint256 lng, uint256 timestamp, uint256 tokenID, SceneInMotif[] memory scenes) public pure returns (string memory) {
+    function renderReplacements(string memory svg, Replacement[] memory replacements) public pure returns (string memory) {
+        for (uint i = 0; i < replacements.length; i++) {
+        Replacement memory replacement = replacements[i];
+        bytes memory data = replacement.data;
+        string memory replacementSvg = "";
+        int16[] memory positions = bytesToInt16Array(data);
+        if (replacement.tag == ObjectType.USE) {
+            uint iterationStep = (replacement.dataType == RenderDataType.POSITIONS) ? 2 : 
+                                  (replacement.dataType == RenderDataType.POSISTIONSANDSCALE) ? 3 : 4;
+
+            for (uint j = 0; j < positions.length; j += iterationStep) {
+                int x = positions[j];
+                int y = positions[j + 1];
+                string memory scaleX = replacement.dataType == RenderDataType.POSITIONS ? "1" : renderDecimal(int(positions[j + 2]));
+                string memory scaleY = replacement.dataType == RenderDataType.POSITIONSANDTWOSCALES ? renderDecimal(int(positions[j + 3])) : scaleX;
+
+                replacementSvg = string.concat(replacementSvg, '<use href="#',
+                        string(abi.encodePacked(replacement.ref)), '" transform="translate(',
+                        x.toStringSigned(), ', ', y.toStringSigned(), ') scale(', scaleX, ', ', scaleY, ')" />');
+                
+            }
+        }
+
+        svg = replace(svg, string(abi.encodePacked("<!--", replacement.placeholder, "-->")), replacementSvg);
+    }
+    return svg;
+}
+
+
+
+
+    function renderMainScene(string memory svg, int lat, int lng, uint256 timestamp, uint256 tokenID, SceneInMotif[] memory scenes) public pure returns (string memory) {
         string memory nightMaskSvg = "";
 
         for (uint i = 0; i < scenes.length; i++) {
@@ -44,7 +75,7 @@ int constant skyWidth = 1080;
         return svg;
     }
 
-    function renderSceneAssets(AssetInScene[] memory assets, uint256 timestamp, uint256 tokenID, uint256[4] memory area, uint256 lat, uint256 lng) public pure returns (string memory sceneSvg, string memory sceneMaskSvg) {
+    function renderSceneAssets(AssetInScene[] memory assets, uint256 timestamp, uint256 tokenID, uint256[4] memory area, int lat, int lng) public pure returns (string memory sceneSvg, string memory sceneMaskSvg) {
          
         SceneElement [] memory elements = new SceneElement[](assets.length);
         sceneMaskSvg = "";
@@ -52,19 +83,30 @@ int constant skyWidth = 1080;
         for (uint i = 0; i < assets.length; i++) {
             AssetInScene memory asset = assets[i];
 
-            uint256 y = area[1] + randomNum(string.concat(timestamp.toString(), asset.name), timestamp, 0, area[3]);
-            uint256 x = area[0] + randomNum(string.concat(timestamp.toString(), asset.name), timestamp, 0, area[2]);
+            string memory assetSalt = string(abi.encodePacked(tokenID.toString(), asset.name));
+            uint[] memory visibleStartTimes = computeStarttime(timestamp, asset.checkInterval , asset.minDuration, asset.maxDuration, asset.possibleOffset, asset.probability, assetSalt, asset.daytime , lat,lng);
 
-            string memory assetSvg = Assets.getAsset(asset.name);
-            assetSvg = setRandomColor(assetSvg, string.concat(timestamp.toString(), asset.name), timestamp);
-            assetSvg = string.concat('<g transform="translate(", x.toString(), ", ", y.toString(), ") scale(1, 1) \">", assetSvg, "</g>');
+            for (uint i2 = 0; i < visibleStartTimes.length; i2++) {
+                uint startTime = (visibleStartTimes[i2]);
 
-            elements[i] = SceneElement(y, assetSvg);
+                string memory assetSvg = Assets.getAsset(asset.name);
+                {
+                string memory posSalt = string(abi.encodePacked(startTime.toString(), asset.name));
+                uint256 y = area[1] + randomNum(posSalt, 0, area[3]);
+                uint256 x = area[0] + randomNum(posSalt, 0, area[2]);
 
-            if (Assets.hasNightMask(asset.name)) {
-                string memory maskName = Assets.getNightMask(asset.name);
-                sceneMaskSvg = string.concat(sceneMaskSvg, "<use href=\"#", maskName, "\" transform=\"translate(", x.toString(), ", ", y.toString(), ") scale(1, 1)\"/>");
-            }
+                assetSvg = setRandomColor(assetSvg, posSalt);
+                assetSvg = string.concat('<g transform="translate(", x.toString(), ", ", y.toString(), ") scale(1, 1) \">", assetSvg, "</g>');
+                
+
+                elements[i] = SceneElement(y, assetSvg);
+
+                if (Assets.hasNightMask(asset.name)) {
+                    string memory maskName = Assets.getNightMask(asset.name);
+                    sceneMaskSvg = string.concat(sceneMaskSvg, "<use href=\"#", maskName, "\" transform=\"translate(", x.toString(), ", ", y.toString(), ") scale(1, 1)\"/>");
+                }
+                }
+        }
         }
 
          uint n = elements.length;
@@ -87,6 +129,48 @@ int constant skyWidth = 1080;
 
         return (sceneSvg, sceneMaskSvg);
     }
+
+    function renderMovingAsset(
+        uint timestamp, 
+        string memory salt, 
+        string memory assetIndex, 
+        bool hasRandomColor, 
+        uint minY, 
+        uint maxY, 
+        bool horizontUp, 
+        uint minScale, 
+        uint maxScale, 
+        uint duration, 
+        uint checkInterval, 
+        uint appearanceProbability, 
+        uint possibleOffset
+    ) public pure returns (string memory) {
+        string memory assetSalt = string(abi.encodePacked(salt, assetIndex));
+        uint[] memory visibleStartTimes = computeStarttime(timestamp, checkInterval, duration, duration, possibleOffset, appearanceProbability, assetSalt, DAYTIME.NIGHT_AND_DAY , 0, 0);
+
+        string memory assets;
+        for (uint i = 0; i < visibleStartTimes.length; i++) {
+            uint startTime = (visibleStartTimes[i]);
+            int progress = int(timestamp - startTime) / int(duration);
+
+            if (progress >= -30 && progress <= 130) {
+                string memory visibleAssetSalt = string(abi.encodePacked(salt, startTime.toString()));
+                string memory assetSvg = Assets.getAsset(assetIndex);
+                uint y = randomNum(visibleAssetSalt, minY, maxY);
+                int8 direction = int8(randomNum(visibleAssetSalt, 0, 1) == 0 ? -1 : int8(1));
+                uint maxX = 1080;
+                int x = direction == -1 ? int(maxX) * progress : int(maxX) * (1 - progress);
+                uint scaleFac = maxScale - minScale;
+                uint relativeY = (y - minY) / (maxY - minY);
+                uint scale = horizontUp ? (relativeY + minScale) * maxScale : (1 - relativeY + minScale) * scaleFac;
+                 assetSvg = setRandomColor(assetSvg, visibleAssetSalt);
+                assetSvg = string.concat('<g transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', scale.toString() ,') \">', assetSvg, '</g>');
+                assets = string.concat(assets, assetSvg);
+            }
+        }
+        return assets;
+    }
+
 
 
      function renderSun(string memory svg, uint skyHeight, int16 azimuth, int16 altitude, uint lookingDirection) public pure returns (string memory) {
@@ -140,14 +224,14 @@ int constant skyWidth = 1080;
         return replace(svg, "<!--night-->", night);
     }
 
-     function randomNum(string memory nonce, uint256 timestamp, uint256 min, uint256 max) public pure returns (uint) {
+     function randomNum(string memory nonce, uint256 min, uint256 max) public pure returns (uint) {
         require(min < max, "min>max");
-        uint randomValue = uint(keccak256(abi.encodePacked(timestamp, nonce)));
+        uint randomValue = uint(keccak256(abi.encodePacked( nonce)));
         return min + (randomValue % (max - min + 1));
     }
 
-    function randomNum(uint256 nonce, uint256 timestamp, uint256 min, uint256 max) public pure returns (uint) {
-        return randomNum(nonce.toString(), timestamp, min, max);
+    function randomNum(uint256 nonce, uint256 min, uint256 max) public pure returns (uint) {
+        return randomNum(nonce.toString(), min, max);
     }
 
      function setUseTags(string memory svgTemplate, string memory ref, int16[] memory positions, bool hasScale, bytes5 placeholder)
@@ -197,10 +281,10 @@ int constant skyWidth = 1080;
 
 
 
-    function setRandomColor(string memory svg, string memory salt, uint256 timestamp) public pure returns (string memory) {
+    function setRandomColor(string memory svg, string memory salt) public pure returns (string memory) {
 
 
-        uint256 rdIndex = randomNum(salt, timestamp, 0,  16);
+        uint256 rdIndex = randomNum(salt, 0,  16);
         string memory rdColor = getColorByIndex(rdIndex);
         return replace(svg, "<!--rdColor-->", rdColor);
     }
@@ -319,11 +403,11 @@ int constant skyWidth = 1080;
         uint maxDuration,
         uint possibleOffset,
         uint appearanceProbability,
-        uint salt,
-        uint dayNight,
+        string memory salt,
+        DAYTIME dayNight,
         int lat,
         int lng
-    ) public view returns (uint[] memory) {
+    ) public pure returns (uint[] memory) {
 
         uint minStartTime = timestamp - maxDuration - possibleOffset;
         uint maxStartTime = timestamp;
@@ -331,7 +415,7 @@ int constant skyWidth = 1080;
         
         {
         // Anpassung der Zeitstempel basierend auf Sonnenauf- und -untergang
-         if (dayNight == 0) {
+         if (dayNight != DAYTIME.NIGHT_AND_DAY) {
             (uint sunrise, uint sunset) = SunCalc.getSunRiseSet(timestamp, lat, lng);
             (minStartTime, maxStartTime, isTimeFrameValid) = adjustTimeStampsForAssetVisibility(minStartTime, maxStartTime, sunrise, sunset, dayNight, 0, maxDuration);
             if (!isTimeFrameValid) {
@@ -345,12 +429,14 @@ int constant skyWidth = 1080;
 
         uint[] memory visibleStartTimes = new uint[](checkCount);
         uint visibleCount = 0;
-
+         
          for (uint i = 0; i < checkCount; i++) {
             uint checkTimestamp = firstCheckTimestamp + i * checkInterval;
-            if (randomNum(checkTimestamp + salt, timestamp, 0, 100) < appearanceProbability) {
-                uint startTime = checkTimestamp + randomNum(checkTimestamp + salt, timestamp, 0, possibleOffset);
-                uint endTime = startTime + randomNum(startTime, timestamp, minDuration, maxDuration);
+            string memory startTimeSalt = string(abi.encodePacked(salt, checkTimestamp.toString()));
+
+            if (randomNum(startTimeSalt, 0, 100) < appearanceProbability) {
+                uint startTime = checkTimestamp + randomNum(startTimeSalt, 0, possibleOffset);
+                uint endTime = startTime + randomNum(startTimeSalt, minDuration, maxDuration);
                 if (startTime <= timestamp && endTime >= timestamp && startTime >= minStartTime) {
                     visibleStartTimes[visibleCount] = startTime;
                     visibleCount++;
@@ -370,19 +456,18 @@ int constant skyWidth = 1080;
         uint256 maxStartTime,
         uint256 sunriseTime,
         uint256 sunsetTime,
-        uint256 timeOfDayVisibility,
+        DAYTIME timeOfDayVisibility,
         uint256 tolerance,
         uint256 maxDuration
     ) public pure returns (uint256, uint256, bool) {
 
-        uint256  NIGHT_ONLY = 1;
-        uint256  DAY_ONLY = 2;
+
         bool isTimeFrameValid = true;
 
         // Anpassung von minStartTime basierend auf dem Asset-Typ
-        if (timeOfDayVisibility == DAY_ONLY && minStartTime < sunriseTime) {
+        if (timeOfDayVisibility == DAYTIME.DAY && minStartTime < sunriseTime) {
             minStartTime = sunriseTime;
-        } else if (timeOfDayVisibility == NIGHT_ONLY && minStartTime > sunsetTime) {
+        } else if (timeOfDayVisibility == DAYTIME.NIGHT && minStartTime > sunsetTime) {
             minStartTime = sunsetTime;
         }
 
@@ -390,7 +475,7 @@ int constant skyWidth = 1080;
         uint256 toleranceTime = maxDuration * tolerance / 100;
 
         // Anpassung von maxStartTime und Überprüfung der Gültigkeit des Zeitrahmens
-        if (timeOfDayVisibility == DAY_ONLY) {
+        if (timeOfDayVisibility == DAYTIME.DAY) {
             uint256 latestStartTimeForDayAsset = sunsetTime - maxDuration + toleranceTime;
             if (maxStartTime > latestStartTimeForDayAsset) {
                 maxStartTime = latestStartTimeForDayAsset;
@@ -398,7 +483,7 @@ int constant skyWidth = 1080;
             if (minStartTime > maxStartTime) {
                 isTimeFrameValid = false;
             }
-        } else if (timeOfDayVisibility == NIGHT_ONLY) {
+        } else if (timeOfDayVisibility == DAYTIME.NIGHT) {
             uint256 latestStartTimeForNightAsset = sunriseTime - maxDuration + toleranceTime;
             if (maxStartTime > latestStartTimeForNightAsset) {
                 maxStartTime = latestStartTimeForNightAsset;
