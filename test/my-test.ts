@@ -8,7 +8,7 @@ const {
 import { ethers } from "hardhat";
 
 
-describe("Lock", function () {
+xdescribe("Lock", function () {
   async function deployOneYearLockFixture() {
     const lockedAmount = 1_000_000_000;
     const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;

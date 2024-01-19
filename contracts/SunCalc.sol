@@ -119,10 +119,10 @@ library SunCalc {
         return (int(TO_RAD * x) - lw * 1e18) / 1e18;
     }
 
-     function getMoonPosition(uint256 lat, uint256 lng, uint256 timestamp) public pure returns (int256, int256, int) {
+     function getMoonPosition(int256 lat, int256 lng, uint256 timestamp) public pure returns (int256, int256, int) {
 
-      int lw = int(lng * TO_RAD)/ 1e18 * -1;
-      uint phi  = lat * TO_RAD / 1e18 + PI2;
+      int lw = lng * int(TO_RAD)/ 1e18 * -1;
+      uint phi  = uint(lat * int(TO_RAD) / 1e18 + int(PI2));
 
       uint256 d = toDays(timestamp);
         (int ra, int dec, uint dt) = moonCoords(d);
@@ -131,8 +131,15 @@ library SunCalc {
         int x = (tan(phi) * Trigonometry.cos(dec) - Trigonometry.sin(dec) * Trigonometry.cos(H)) / 1e18;
         int pa = p_atan2(Trigonometry.sin(H), x);
         int az = azimuth(H, phi, dec);
+        az = az * 180e18 / int(PI_E) + 180e18;
+        az = az % 360e18;
+        if (az<0) {
+            az = az + 360e18;
+        }
+        int alt = h * 180e18 / int(PI_E);
+        int angle = pa * 180e18 / int(PI_E);
 
-        return (az,h, pa) ;
+        return (az,alt, angle) ;
     } 
 
     function getMoonIllumination(uint timestamp) public pure returns (int, int, int) {
@@ -153,6 +160,7 @@ library SunCalc {
         int angle = p_atan2(Trigonometry.cos(decSun) * Trigonometry.sin(raSun - raMoon) / 1e18, (Trigonometry.sin(decSun) * Trigonometry.cos(decMoon) / 1e18 ) 
         - (Trigonometry.cos(decSun) * Trigonometry.sin(decMoon) * Trigonometry.cos(raSun) - raMoon) / 1e36);
 
+        angle = angle * 180e18 / int(PI_E);
         int fraction = (1e18 + Trigonometry.cos(inc)) / 2;
         int phase = 5 * 1e17 +  5 * 1e17 * inc  * ( angle < 0 ? -1 : int(1)) / int(PI_E);
 
@@ -262,10 +270,10 @@ library SunCalc {
       (int ra, int dec) = sunCoords(d);
         int H = sideRealTime(d, lw) - ra;
 
-        int az = azimuth(H, phi, dec);
-        int al = altitude(H, phi, dec);
+        int az = azimuth(H, phi, dec) * 180e18 / int(PI_E) + 180e18;
+        int al = altitude(H, phi, dec) * 180e18 / int(PI_E);
 
-        return (int256(az),int256(al)) ;
+        return (az,al);
 
     }
 
@@ -295,6 +303,7 @@ library SunCalc {
             return T;
         }
     }
+
 
 
 

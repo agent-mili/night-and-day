@@ -17,12 +17,11 @@ enum MotifType{
 
 
 struct Replacement {
-    uint256 tokenId;
     ObjectType tag;
     RenderDataType dataType;
-    bytes data;
-    bytes5 placeholder;
-    bytes5 ref;
+    int[] data;
+    string placeholder;
+    string ref;
 }
 
 enum DAYTIME {
@@ -31,33 +30,34 @@ enum DAYTIME {
 
 struct AssetInScene {
     string name;
-    uint256 minDuration;
-    uint256 maxDuration;
-    uint256 checkInterval;
-    uint256 possibleOffset;
-    uint256 probability;
-    DAYTIME daytime;
+    int minDuration;
+    int maxDuration;
+    int checkInterval;
+    int possibleOffset;
+    int probability;
+    DAYTIME dayTime;
     } 
 
     struct SceneInMotif {
-        string name;
+        string placeHolder;
         AssetInScene[] assets;
-        uint256[4] viewingRange;
+        int[4] area;
     }
 
 
 
 struct Motif {
-        uint256 tokenId;
         string name;
-        int32 lat;
-        int32 lng;
-        uint16 lookingDirection;
-        uint16 horizon;
+        int lat;
+        int lng;
+        int lookingDirection;
+        int horizon;
         string svg;
         SceneInMotif[] scenes;
-        MotifType motifType;
+        Replacement[] replacements;
     }
+
+
 interface IMotif {
     
     // function that returns a motif struct

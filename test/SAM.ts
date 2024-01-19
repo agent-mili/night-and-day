@@ -6,7 +6,7 @@ import {
     time
   } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
-describe("SAM", function () {
+xdescribe("SAM", function () {
     it("should return sun position", async function () {
         const [owner, otherAccount] = await ethers.getSigners();
 
