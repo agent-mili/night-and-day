@@ -90,5 +90,32 @@ it("should return a token URI", async function () {
 });
 
 
+it("should return a chart", async function () {
+  const [owner, otherAccount] = await ethers.getSigners();
+  
+   // deploy linked libraries (SunCalc and NDRenderer) and link them to NAD contract
+   const sunCalc = await ethers.deployContract("SunCalc");
+   const ndRenderer = await ethers.deployContract("NDRenderer");
+ 
+   await sunCalc.waitForDeployment();
+   await ndRenderer.waitForDeployment();
+ 
+ 
+ 
+   const NandD = await ethers.getContractFactory("NAD", {
+     libraries: {
+       SunCalc: sunCalc.target,
+       NDRenderer: ndRenderer.target,
+     },
+   });
+  const nandd = await NandD.deploy();
 
+  const timestamp = BigInt(Date.now()) / BigInt(1e3);
+  const chart = await nandd.renderChart("red_rock", 1, timestamp.toString());
+  console.log(chart);
+  expect(chart).to.be.a("string");
+
+
+
+});
 });

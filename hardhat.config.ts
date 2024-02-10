@@ -15,6 +15,15 @@ const config: HardhatUserConfig = {
 
 },
 
+networks: {
+  hardhat: {
+    forking: {
+      //infura 
+      url: "https://mainnet.infura.io/v3/b7328e17100448f89847030a6ec31280",
+    },
+  },
+},
+
   //@ts-ignore
   contractSizer: {
     alphaSort: true,

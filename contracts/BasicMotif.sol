@@ -12,7 +12,7 @@ enum ObjectType {
 }
 
 enum MotifType{
-    SightSeeing, Beach, Parc, Cockpit, Cargo, Skyscraper
+    SightSeeing, Beach, Parc, Skyscraper
 }
 
 

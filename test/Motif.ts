@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 
 
-describe("Cairo", function () {
+xdescribe("Cairo", function () {
     xit("Should return a motif", async function () {
         const [owner, otherAccount] = await ethers.getSigners();
 

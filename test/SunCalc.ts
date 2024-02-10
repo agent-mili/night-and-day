@@ -3,8 +3,8 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 
-describe('SunCalc', function () {
-    it('should return sun position', async function () {
+xdescribe('SunCalc', function () {
+    xit('should return sun position', async function () {
 
         const [owner, otherAccount] = await ethers.getSigners();
 

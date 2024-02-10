@@ -169,20 +169,36 @@ uint256 constant TO_DEG = 57295779513224454144;
         string memory assets;
         for (uint i = 0; i < visibleStartTimes.length; i++) {
             uint startTime = (visibleStartTimes[i]);
-            int progress = int(timestamp - startTime) / int(duration);
+            console.log("startTime : ");
+            console.logUint(startTime);
+
+            console.log("timestamp : ");
+            console.logUint(timestamp);
+
+            console.log("duration : ");
+            console.logUint(duration);
+
+            int progress = int(timestamp - startTime) * 100 / int(duration);
+
+            console.log("progress : ");
+            console.logInt(progress);
 
             if (progress >= -30 && progress <= 130) {
                 string memory visibleAssetSalt = string(abi.encodePacked(salt, startTime.toString()));
                 uint y = randomNum(visibleAssetSalt, minY, maxY);
                 int8 direction = int8(randomNum(visibleAssetSalt, 0, 1) == 0 ? -1 : int8(1));
                 uint maxX = 1080;
-                int x = direction == -1 ? int(maxX) * progress : int(maxX) * (1 - progress);
+                int x = direction == -1 ? int(maxX) * progress / 100 : int(maxX) * (100 - progress) / 100;
+                console.log("x : ");
+                console.logInt(x);
                 uint scaleFac = maxScale - minScale;
-                uint relativeY = (y - minY) / (maxY - minY);
-                uint scale = horizontUp ? (relativeY + minScale) * maxScale : (1 - relativeY + minScale) * scaleFac;
-                string memory assetSvg = string.concat('<use href="#', assetName ,'"fill="<!--rdColor-->" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', scale.toString() ,') "/>');
+                uint relativeY = (y - minY) * 100 / (maxY - minY);
+                uint scale = horizontUp ? (relativeY + minScale * 100) * maxScale : (100 - relativeY + minScale * 100) * scaleFac;
+               
+                string memory assetSvg = string.concat('<use href="#', assetName ,'"fill="<!--rdColor-->" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', renderDecimal(int(scale)) ,') "/>');
                 assetSvg = setRandomColor(assetSvg, visibleAssetSalt);
-
+                console.log("scale : ");
+                console.log(renderDecimal(int(scale)));
                 assets = string.concat(assets, assetSvg);
             }
         }

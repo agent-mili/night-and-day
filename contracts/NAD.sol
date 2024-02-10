@@ -12,6 +12,9 @@ import "./NDAlgos.sol";
 
 import "./motifs/Cairo.sol";
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+ 
+
 
 contract NAD is ERC721 {
      using Strings for uint256;
@@ -116,13 +119,105 @@ contract NAD is ERC721 {
         uint tokenId, uint horizonInPx, int lookingDirection) public pure returns (string memory) {
 
             string memory assetName = "aeroplane";
-            string memory assetSalt = string.concat(tokenId.toString(), assetName, lookingDirection.toStringSigned());
+            string memory salt = string.concat(tokenId.toString(), lookingDirection.toStringSigned());
 
 
 
-            string memory assetsSVG =  NDRenderer.renderMovingAsset(timestamp, assetSalt, assetName, false, 0, horizonInPx, false, 1, 3, 120, 60, 100, 60 );
+            string memory assetsSVG =  NDRenderer.renderMovingAsset(timestamp, salt, assetName, false, 0, horizonInPx, false, 1, 3, 120, 60, 100, 60 );
+            console.logUint(timestamp);
             console.log(assetsSVG);
             return NDRenderer.replaceFirst(svg, "<!--skyscene-->", assetsSVG);
+        }
+
+
+        function renderWaterScene(string memory svg, uint timestamp, uint tokenId, uint horizonInPx, int lookingDirection) public pure returns (string memory) {
+            
+
+            string memory salt = string.concat(tokenId.toString(), lookingDirection.toStringSigned());
+            
+
+            string memory tankerSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "tanker", true, horizonInPx, 0, false, 1, 3, 120, 60, 100, 60 );
+            string memory fisherSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "fisher", true, horizonInPx, 0, false, 1, 3, 120, 60, 100, 60 );
+            string memory yachtSVG =   NDRenderer.renderMovingAsset(timestamp, salt, "yacht", true, horizonInPx, 0, false, 1, 3, 120, 60, 100, 60 );
+
+            string memory assetsSVG = string.concat(tankerSVG, fisherSVG, yachtSVG);
+
+            return NDRenderer.replaceFirst(svg, "<!--waterscene-->", assetsSVG);
+
+
+        }
+
+
+        function renderChart(string memory svg, uint tokenId, uint timestamp) public view returns (string memory) {
+            string memory salt = tokenId.toString();
+
+            //Dogecoin chainlink
+            //0x2465CefD3b488BE410b941b1d4b2767088e2A028
+            //BTC-USD
+            //0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c
+            //XAU-USD
+            //0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c
+            //XAG-USD
+            //0x379589227b15F1a12195D3f2d90bBc9F31f95235
+            //ETH-USD
+            //0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+
+            AggregatorV3Interface dataFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+            (uint80 firstRoundID , , ,uint firstUpdatedAt , ) = dataFeed.latestRoundData();
+
+
+            // fetch prices of last  24 hour but at least 8 pricepoints
+            // store price and their timestamp (updatedAt)
+
+         //   (uint, uint)[] memory prices = new (uint, uint)[](8);
+
+            uint[] memory prices = new uint[](16);
+
+            for(uint i = 0; i < 16; i+=2) {
+                (, int price, , uint updatedAt , ) = dataFeed.getRoundData(firstRoundID);
+                prices[i] = uint(price);
+                prices[i+1] = updatedAt;
+                firstRoundID--;
+            }
+
+            console.logUint(prices.length);
+            console.logUint(prices[0]);
+            // find lowest and highest price
+            uint lowestPrice = prices[0];
+            uint highestPrice = prices[0];
+            for(uint j = 0; j < prices.length; j+=2) {
+                if(prices[j] < lowestPrice) {
+                    lowestPrice = prices[j];
+                }
+                if(prices[j] > highestPrice) {
+                    highestPrice = prices[j];
+                }
+            }
+
+            // find the price range
+            uint priceRange = highestPrice - lowestPrice;
+
+            //time range by subtracting the first timestamp from the last
+            uint timeRange = prices[1] - prices[prices.length - 1];
+
+
+            uint chartWidth = 280;
+            uint chartHeight = 200;
+            uint chartX = 20;
+            uint chartY = 730;
+
+            // iterate prices and create line chart based on price and timestamp
+            string memory chart = '<g id="chart" transform="translate(';
+            chart = string.concat(chart, chartX.toString(), ",", chartY.toString(), ') scale(1,-1)">');
+            for(uint j = 0; j < prices.length; j+=2) {
+                uint x = (prices[j+1] - prices[prices.length - 1]) * chartWidth / timeRange;
+                uint y = (prices[j] - lowestPrice) * chartHeight / priceRange;
+                chart = string.concat(chart, '<circle cx="', x.toString(), '" cy="', y.toString(), '" r="2" fill="#fff"/>');
+            }
+
+
+            return chart;
+           // return NDRenderer.replaceFirst(svg, "<!--chart-->", "chart");
         }
 
 
