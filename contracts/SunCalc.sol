@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { sqrt} from "@prb/math/src/Common.sol";
 import "./solidity-trigonometry/Trigonometry.sol";
 import "./solidity-trigonometry/InverseTrigonometry.sol";
-import "hardhat/console.sol";
+
 
 
 library SunCalc {
@@ -18,7 +18,7 @@ library SunCalc {
     uint256 constant PI2 = PI_E * 2;
     uint256 constant TO_RAD = 17453292519943296;
     uint256 constant TO_DEG = 57295779513224454144;
-    uint256 constant J0 = 900000000000; // 0.0009 * 1e18
+    uint256 constant J0 = 9*1e14;
 
 
 
@@ -31,23 +31,28 @@ library SunCalc {
     }
 
     function julianCycle(uint256 d, int256 lw) public pure returns (int256) {
-        int256 cycle = (int256(d) - int256(J0) - lw) / int256(PI2);
-        return cycle * 1e18;
+        int256 cycle = int256(d) - int256(J0) -  (1e18 * lw / int256(PI2));
+
+        // round to cloesest integer 
+        uint remainder = uint(cycle) % 1e18;
+        if (remainder > 5e17) {
+            return cycle / 1e18 * 1e18 + 1e18;
+        } 
+
+        return cycle / 1e18 * 1e18;
     }
 
     //function approxTransit(Ht, lw, n) { return J0 + (Ht + lw) / (2 * PI) + n; }
     // implement in solidity
        function approxTransit(uint256 Ht, int256 lw, uint256 n) public pure returns (uint256) {
-        // (Ht + lw) / (2 * PI) auf einer 1e18 Basis
-        // Beachten Sie, dass lw und Ht bereits auf einer 1e18 Basis sind
-        uint256 transit = ((Ht + uint256(lw)) / PI2) * 1e18;
+ 
+        int transit = (int(Ht) + lw ) * 1e18 / int(PI2) ;
 
-        // Addieren Sie J0 und n, während Sie das Ergebnis auf einer 1e18 Basis halten
-        return J0 + transit + n;
+        return uint(int(J0) + transit + int(n));
     }
 
      function solarTransitJ(uint256 ds, uint256 M, uint256 L) public pure returns (uint256) {
-        uint256 term1 = uint(int(J2000) + int(ds) + (5300000000 * Trigonometry.sin(M) / 1e18 )); // 0.0053 * 1e18
+        uint256 term1 = uint(int(J2000) + int(ds) + (53*1e14 * Trigonometry.sin(M) / 1e18 )); // 0.0053 * 1e18
         int256 term2 = 6900000000 * Trigonometry.sin(2 * L) / 1e18;
 
         return uint(int(term1) - term2);
@@ -85,7 +90,7 @@ library SunCalc {
 
         int y = (Trigonometry.sin(l) * Trigonometry.cos(EARTH_OBLIQUITY) - tan(b) * Trigonometry.sin(EARTH_OBLIQUITY)) / 1e18;
         int cosL = Trigonometry.cos(l);
-        return p_atan2(y, Trigonometry.cos(l));
+        return p_atan2(y, cosL);
     }
 
 
@@ -124,12 +129,16 @@ library SunCalc {
       int lw = lng * int(TO_RAD)/ 1e18 * -1;
       uint phi  = uint(lat * int(TO_RAD) / 1e18 + int(PI2));
 
+
       uint256 d = toDays(timestamp);
+
         (int ra, int dec, uint dt) = moonCoords(d);
         int H = sideRealTime(d, lw) - ra;
         int h = altitude(H, phi, dec);
         int x = (tan(phi) * Trigonometry.cos(dec) - Trigonometry.sin(dec) * Trigonometry.cos(H)) / 1e18;
+
         int pa = p_atan2(Trigonometry.sin(H), x);
+
         int az = azimuth(H, phi, dec);
         az = az * 180e18 / int(PI_E) + 180e18;
         az = az % 360e18;
@@ -158,13 +167,13 @@ library SunCalc {
        
         int inc = p_atan2(int(sDist) * Trigonometry.sin(phi) / 1e18, int(dtMoon) - int(sDist) * Trigonometry.cos(phi) / 1e18);
         int angle = p_atan2(Trigonometry.cos(decSun) * Trigonometry.sin(raSun - raMoon) / 1e18, (Trigonometry.sin(decSun) * Trigonometry.cos(decMoon) / 1e18 ) 
-        - (Trigonometry.cos(decSun) * Trigonometry.sin(decMoon) * Trigonometry.cos(raSun) - raMoon) / 1e36);
+        - Trigonometry.cos(decSun) * Trigonometry.sin(decMoon) * Trigonometry.cos(raSun - raMoon) / 1e36);
 
         angle = angle * 180e18 / int(PI_E);
         int fraction = (1e18 + Trigonometry.cos(inc)) / 2;
-        int phase = 5 * 1e17 +  5 * 1e17 * inc  * ( angle < 0 ? -1 : int(1)) / int(PI_E);
+        //int phase = 5 * 1e17 +  5 * 1e17 * inc  * ( angle < 0 ? -1 : int(1)) / int(PI_E);
 
-        return (fraction, phase, angle);
+        return (fraction, 0, angle);
     } 
 
 
@@ -219,10 +228,13 @@ library SunCalc {
         
        
         int lw = lng * int(TO_RAD)/ 1e18 * -1;
+
         uint phi  = uint(lat * int(TO_RAD) / 1e18 + int(PI2));
 
-        uint256 d = toDays(date); // Konvertiert das Datum in Julianische Tage
+        uint256 d = toDays(date); 
+
         int256 n = julianCycle(d, lw);
+
         uint256 ds = approxTransit(0, lw, uint(n));
 
         uint256 M = solarMeanAnomaly(ds);
@@ -234,15 +246,15 @@ library SunCalc {
         uint256 Jset = getSetJ(0, lw, uint(phi), uint(dec), uint(n), M, uint(L));
         uint256 Jrise = Jnoon - (Jset - Jnoon);
 
-    
-
         sunrise = fromJulian(Jrise);
         sunset = fromJulian(Jset);
 
+
+
         if (sunrise > date) {
-            n -= 1;
+            n -= 1e18;
         } else if (sunset < date) {
-            n += 1;
+            n += 1e18;
         }
         ds = approxTransit(0, lw, uint(n));
         M = solarMeanAnomaly(ds);
@@ -290,6 +302,8 @@ library SunCalc {
         int256 abs_y = y >= 0 ? y : -y;
         abs_y += 1e8;
 
+
+
         if (x >= 0) {
             int256 r = ((x - abs_y) * 1e18) / (x + abs_y);
             T = (1963e14 * r**3) / 1e54 - (9817e14 * r) / 1e18 + c1;
@@ -308,7 +322,8 @@ library SunCalc {
 
 
     function tan(int x) public pure returns (int) {
-        return Trigonometry.sin(x) * 1e18 / Trigonometry.cos(x);
+        int y =  Trigonometry.sin(x) * 1e18 / Trigonometry.cos(x);
+        return y;
     }
 
     function tan(uint x) public pure returns (int) {

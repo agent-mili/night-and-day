@@ -7,7 +7,7 @@ import {
   } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 xdescribe("SAM", function () {
-    it("should return sun position", async function () {
+    xit("should return sun position", async function () {
         const [owner, otherAccount] = await ethers.getSigners();
 
         const SAM = await ethers.getContractFactory("SAM");
@@ -22,5 +22,6 @@ xdescribe("SAM", function () {
         expect(sunPosition).to.be.a("array");
     }
     )
+
 }
 );

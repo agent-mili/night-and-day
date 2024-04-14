@@ -1,4 +1,4 @@
-// test getMotif from Cairo.sol contract
+/* // test getMotif from Cairo.sol contract
 
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -15,4 +15,4 @@ xdescribe("Cairo", function () {
         console.log(motif);
         expect(motif).to.be.a("array");
     })
-});
+}); */

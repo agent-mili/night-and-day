@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 
 contract Seaports {
     // Definieren Sie eine Struktur, die der von 'victoria' entspricht
@@ -8,7 +7,7 @@ contract Seaports {
         string code;
         int lat;
         int lng;
-        int lookingDirection;
+        int heading;
         bool isLeftSided;
         uint[] neighbours;
     }
@@ -72,7 +71,7 @@ function getAllLocations() public view returns (Location[] memory) {
         bytes5 codeBytes;
         int lat;
         int lng;
-        int lookingDirection;
+        int heading;
         bool isLeftSided;
         
         // Extrahieren und Konvertieren der Daten
@@ -84,7 +83,7 @@ function getAllLocations() public view returns (Location[] memory) {
 
         lat = toInt32(data[5], data[6], data[7], data[8]);
         lng = toInt32(data[9], data[10], data[11], data[12]);
-        lookingDirection = int (uint(uint8(data[14])) | (uint16(uint8(data[13])) << 8));
+        heading = int (uint(uint8(data[14])) | (uint16(uint8(data[13])) << 8));
         isLeftSided = data[15] == 0x01;
 
         // Die Anzahl der Nachbarn und ihre Indizes müssen bekannt sein, um sie zu dekodieren
@@ -94,7 +93,7 @@ function getAllLocations() public view returns (Location[] memory) {
             neighbours[i] = uint(uint8(data[16 + i])); // Jeder Nachbar isst 1 Byte
         }
 
-        return Location(code, lat, lng, lookingDirection, isLeftSided, neighbours);
+        return Location(code, lat, lng, heading, isLeftSided, neighbours);
     }
 
     // Hilfsfunktion zur Konvertierung von 4 Bytes zu int32

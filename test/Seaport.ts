@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ethers } from 'hardhat';
 
 
-describe('Seaport', function () {
+xdescribe('Seaport', function () {
     xit('should return seaport location position', async function () {
 
         const [owner, otherAccount] = await ethers.getSigners();
