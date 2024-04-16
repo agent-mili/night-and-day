@@ -306,7 +306,7 @@ contract NAD is ERC721Reservations {
 
             string memory description = dataFeed.description();
             firstRoundID--;
-            for(uint i = 2; i < 10; i+=2) {
+            for(uint i = 2; i < 16; i+=2) {
                 (, int price, , uint updatedAt , ) = dataFeed.getRoundData(firstRoundID);
                 prices[i] = uint(price);
                 prices[i+1] = updatedAt;

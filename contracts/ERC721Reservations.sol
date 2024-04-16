@@ -2,10 +2,14 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+import "@openzeppelin/contracts/interfaces/IERC2981.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract ERC721Reservations is ERC721Royalty, ReentrancyGuard {
+import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
     bytes32 public merkleRoot = 0xd93cc992f7664fad08565ac8e528121f35916c72b1ab662873a344f5e4bfcdc3;
 
     uint256[] private shuffledTokenIds = [340,
@@ -511,8 +515,8 @@ contract ERC721Reservations is ERC721Royalty, ReentrancyGuard {
 
     mapping(bytes32 => bool) public usedCodes;
     uint256 public reservedSupply = 50;
-    uint256 public totalSupply;
     uint256 public maxSupply = 450;
+    uint public totalSupply = 0;
 
     constructor(string memory name_, string memory symbol_)
         ERC721(name_, symbol_)
@@ -537,9 +541,83 @@ contract ERC721Reservations is ERC721Royalty, ReentrancyGuard {
 
     function mint() external nonReentrant {
         require(totalSupply < maxSupply, "Max supply reached");
-        require(totalSupply >= reservedSupply, "Reserved supply not exhausted");
+      //  require(totalSupply >= reservedSupply, "Reserved supply not exhausted");
 
         uint256 tokenId = shuffledTokenIds[totalSupply++];
         _safeMint(msg.sender, tokenId);
     }
+
+     struct RoyaltyInfo {
+        address receiver;
+        uint96 royaltyFraction;
+    }
+
+    RoyaltyInfo private _defaultRoyaltyInfo;
+
+    /**
+     * @dev The default royalty set is invalid (eg. (numerator / denominator) >= 1).
+     */
+    error ERC2981InvalidDefaultRoyalty(uint256 numerator, uint256 denominator);
+
+    /**
+     * @dev The default royalty receiver is invalid.
+     */
+    error ERC2981InvalidDefaultRoyaltyReceiver(address receiver);
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
+        return interfaceId == type(IERC2981).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**
+     * @inheritdoc IERC2981
+     */
+    function royaltyInfo(uint256 tokenId, uint256 salePrice) public view virtual returns (address, uint256) {
+        RoyaltyInfo memory royalty = _defaultRoyaltyInfo;
+
+        uint256 royaltyAmount = (salePrice * royalty.royaltyFraction) / _feeDenominator();
+
+        return (royalty.receiver, royaltyAmount);
+    }
+
+    /**
+     * @dev The denominator with which to interpret the fee set in {_setTokenRoyalty} and {_setDefaultRoyalty} as a
+     * fraction of the sale price. Defaults to 10000 so fees are expressed in basis points, but may be customized by an
+     * override.
+     */
+    function _feeDenominator() internal pure virtual returns (uint96) {
+        return 10000;
+    }
+
+    /**
+     * @dev Sets the royalty information that all ids in this contract will default to.
+     *
+     * Requirements:
+     *
+     * - `receiver` cannot be the zero address.
+     * - `feeNumerator` cannot be greater than the fee denominator.
+     */
+    function _setDefaultRoyalty(address receiver, uint96 feeNumerator) internal virtual {
+        uint256 denominator = _feeDenominator();
+        if (feeNumerator > denominator) {
+            // Royalty fee will exceed the sale price
+            revert ERC2981InvalidDefaultRoyalty(feeNumerator, denominator);
+        }
+        if (receiver == address(0)) {
+            revert ERC2981InvalidDefaultRoyaltyReceiver(address(0));
+        }
+
+        _defaultRoyaltyInfo = RoyaltyInfo(receiver, feeNumerator);
+    }
+
+    /**
+     * @dev Removes default royalty information.
+     */
+    function _deleteDefaultRoyalty() internal virtual {
+        delete _defaultRoyaltyInfo;
+    }
+
+
 }
