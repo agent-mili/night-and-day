@@ -178,8 +178,15 @@ uint256 constant TO_DEG = 57295779513224454144;
                 uint relativeY = (y - minY) * 100 / (maxY - minY);
                 uint scale = horizontUp ? (relativeY + minScale * 100) * maxScale : (100 - relativeY + minScale * 100) * scaleFac;
                
-                string memory assetSvg = string.concat('<use href="#', assetName ,'"fill="<!--rdColor-->" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', renderDecimal(int(int(scale) * direction)) , ' ', renderDecimal(int(scale)), ') "/>');
-                assetSvg = setRandomColor(assetSvg, visibleAssetSalt);
+                string memory assetSvg;
+                if (hasRandomColor)
+                {
+                    assetSvg = string.concat('<use href="#', assetName ,'" fill="<!--rdColor-->" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', renderDecimal(int(int(scale) * direction)) , ' ', renderDecimal(int(scale)), ') "/>');
+                    assetSvg = setRandomColor(assetSvg, visibleAssetSalt);
+                } else {
+                    assetSvg = string.concat('<use href="#', assetName ,'" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', renderDecimal(int(int(scale) * direction)) , ' ', renderDecimal(int(scale)), ') "/>');
+                }
+
                 assets = string.concat(assets, assetSvg);
             }
         }
@@ -276,9 +283,9 @@ uint256 constant TO_DEG = 57295779513224454144;
         string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
 
         string memory night = string.concat(
-            '<rect mask="url(#nightMask', motifTypeString, ')" style="mix-blend-mode:multiply" width="100%" height="100%" fill="#0F3327" opacity=',
+            '<rect mask="url(#nightMask', motifTypeString, ')" style="mix-blend-mode:multiply" width="100%" height="100%" fill="#0F3327" opacity="',
             opacityString,
-            '></rect>'
+            '"></rect>'
         );
 
         

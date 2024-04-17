@@ -26,12 +26,10 @@ contract NAD is ERC721Reservations {
 
 
       string topSVG = 
-      '<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewbox="0 0 1080 1080">';
-     
-
-      string blackFilterSVG = '<filter id="makeBlack">'
+      '<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewbox="0 0 1080 1080">'
+      '<filter id="makeBlack">'
       '<feColorMatrix type="matrix"'
-      'values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>';
+      ' values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>';
 
     
 
@@ -73,9 +71,14 @@ contract NAD is ERC721Reservations {
         uint timestamp = _timestamp;
         uint sunrise;
         uint sunset;
+        string memory sunSVG;
+        string memory skyColor;
+        string memory moonSVG;
+        string memory nightSVG;
 
 
 
+        {
          (int azimuth, int altitude) = SunCalc.getPosition(motif.lat * 1e12, motif.lng * 1e12, timestamp * 1e18);
          if (tokenId != 3) {
                 (sunrise, sunset) = SunCalc.getSunRiseSet(timestamp * 1e18, motif.lat * 1e12, motif.lng * 1e12);
@@ -85,7 +88,7 @@ contract NAD is ERC721Reservations {
          }
         
 
-         string memory sunSVG = NDRenderer.renderSun(uint(motif.horizon) * 1e4, azimuth / 1e14, altitude / 1e14, uint(motif.heading) * 1e4);
+         sunSVG = NDRenderer.renderSun(uint(motif.horizon) * 1e4, azimuth / 1e14, altitude / 1e14, uint(motif.heading) * 1e4);
 
 
          (int moonAzimuth, int moonAltitude, int parallacticAngle) = SunCalc.getMoonPosition( motif.lat * 1e12, motif.lng * 1e12, timestamp * 1e18);
@@ -94,13 +97,13 @@ contract NAD is ERC721Reservations {
           (int fraction, int phase, int angle )  = SunCalc.getMoonIllumination(timestamp * 1e18);
 
 
-          string memory moonSVG = NDRenderer.renderMoon( motif.motifType,  motif.heading * 1e4, motif.horizon * 1e4, moonAzimuth / 1e14, moonAltitude / 1e14, parallacticAngle / 1e14, fraction / 1e14, angle / 1e14);
+          moonSVG = NDRenderer.renderMoon( motif.motifType,  motif.heading * 1e4, motif.horizon * 1e4, moonAzimuth / 1e14, moonAltitude / 1e14, parallacticAngle / 1e14, fraction / 1e14, angle / 1e14);
+           string memory waterColor;
+          ( skyColor, waterColor) = NDRenderer.getSkyColor(altitude / 1e16);
+           motifSVG = NDRenderer.replaceFirst(motifSVG, "<!--watercolor-->", waterColor);
 
-          (string memory skyColor, string memory waterColor) = NDRenderer.getSkyColor(altitude / 1e16);
 
-         // take first second of day and add token id to it
-        uint cloudNonce = block.timestamp - (block.timestamp  % 86400) + tokenId;
-         string memory cloudsSVG = NDRenderer.generateClouds( motif.horizon, cloudNonce);
+
         
         uint randomFlower = NDRenderer.randomNum(tokenId, 0, 2);        
 
@@ -110,13 +113,18 @@ contract NAD is ERC721Reservations {
         (string memory blossom, string memory stick, string memory back, string memory front) = flowerType == FlowerType.ROSE ? motifDataManager.getRose() : flowerType == FlowerType.SUNFLOWER ? motifDataManager.getSunflower() : motifDataManager.getGentian(); 
          motifSVG = NDRenderer.renderFlower(motifSVG, azimuth / 1e14, altitude / 1e16, motif.heading * 1e4, flowerType, blossom, stick, back, front, hasPot);
 
-         string memory nightSVG = NDRenderer.applyNight( altitude / 1e14, motif.motifType);
+         nightSVG = NDRenderer.applyNight( altitude / 1e14, motif.motifType);
+        }
 
          AssetInScene[] memory assetInScene = motifDataManager.getAssetInScene();
          string memory maskedAssetsSVG;
         (motifSVG, maskedAssetsSVG) = NDRenderer.renderMainScene(motifSVG, timestamp, tokenId, motif.scenes, assetInScene, sunrise, sunset);
          motifSVG = NDRenderer.renderReplacements(motifSVG, motif.replacements);
          string memory skySceneSVG = renderAirplanes( timestamp, tokenId, uint(motif.horizon), motif.heading);
+
+                  // take first second of day and add token id to it
+        uint cloudNonce = block.timestamp - (block.timestamp  % 86400) + tokenId;
+         string memory cloudsSVG = NDRenderer.generateClouds( motif.horizon, cloudNonce);
          
         if (motif.motifType == MotifType.BEACH) {
             motifSVG = renderBeachTraits(motifSVG, tokenId);
@@ -145,6 +153,7 @@ contract NAD is ERC721Reservations {
 
 
         string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
+
 
 
          string memory assetsSVG = motifDataManager.assets();
@@ -295,6 +304,10 @@ contract NAD is ERC721Reservations {
                 svg = NDRenderer.replaceFirst(svg, string.concat("<!--", skylineString, "-->"), i <=skyLineType ? "visible" : "hidden");
             }
 
+            bool isCityCoastel = motifDataManager.isCityCoastel(tokenId);
+
+            svg = NDRenderer.replaceFirst(svg, "<!--coastal-->", isCityCoastel ? "visible" : "hidden");
+
          
             //RENDER CHART
             uint[] memory prices = new uint[](16);
@@ -362,6 +375,15 @@ contract NAD is ERC721Reservations {
             svg = NDRenderer.replaceFirst(svg, "<!--polar-->", climateZoneIndex == 0 ? "visible" : "hidden");
             svg = NDRenderer.replaceFirst(svg, "<!--temperate-->",  climateZoneIndex == 1 ? "visible" : "hidden");
             svg = NDRenderer.replaceFirst(svg, "<!--desert-->", climateZoneIndex == 2 ? "visible" : "hidden");
+
+             (bool hasCity,bool hasRiver,bool hasMountains,bool hasOcean) = motifDataManager.getLandScapeTraits(tokenId);
+
+            svg = NDRenderer.replaceFirst(svg, "<!--city-->", hasCity ? "visible" : "hidden");
+            svg = NDRenderer.replaceFirst(svg, "<!--river-->", hasRiver ? "visible" : "hidden");
+            svg = NDRenderer.replaceFirst(svg, "<!--mountains-->", hasMountains ? "visible" : "hidden");
+            svg = NDRenderer.replaceFirst(svg, "<!--ocean-->", hasOcean ? "visible" : "hidden");
+
+
 
             
             return svg;

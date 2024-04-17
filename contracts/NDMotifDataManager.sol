@@ -166,6 +166,10 @@ contract NDMotifDataManager {
         return genericMotifs.getClimateZoneForLandscape(tokenId - LANDSCAPE_START_INDEX);
     }
 
+    function getLandScapeTraits(uint tokenId) public view returns (bool, bool, bool, bool) {
+        return genericMotifs.getLandscapeTraits(tokenId - LANDSCAPE_START_INDEX);
+    }
+
     //
     function getAssetInScene() public pure returns (AssetInScene[]  memory) {
         bytes memory assetsInScene = Assets.getAssetsInScene();

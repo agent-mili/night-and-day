@@ -75,4 +75,22 @@
             return (climateZoneColor, trait, climateZoneIndex);
         }
 
+        function getLandscapeTraits(uint index) public pure returns (bool, bool, bool, bool ) {
+
+            // combine three bools/trais into one uint use bit shifting
+            uint8[85] memory traits = [5,2,5,5,3,4,0,5,0,0,3,8,0,5,5,5,1,9,4,4,0,0,8,8,0,0,0,0,2,9,9,0,4,3,3,1,0,4,9,8,9,9,5,5,5,8,4,4,4,4,4,2,8,7,9,1,2,2,2,5,2,2,3,3,3,7,3,3,7,3,5,9,9,3,3,3,7,9,3,7,6,7,3,1,2];
+
+            uint landscapeTrait = traits[index];
+            bool hasCity = (landscapeTrait & 1) == 1;
+            bool hasRiver = (landscapeTrait & 2) == 2;
+            bool hasMountains = (landscapeTrait & 4) == 4;
+            bool hasOcean = (landscapeTrait & 8) == 8;
+
+
+            return (hasCity, hasRiver, hasMountains, hasOcean);
+
+        }
+
+
+
     }
