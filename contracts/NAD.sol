@@ -11,7 +11,7 @@ import "./NDDecoder.sol";
 import "./NDRenderer.sol";
 import "./NDAlgos.sol";
 
-
+import "@openzeppelin/contracts/utils/Base64.sol";
 
 import "./NDMotifDataManager.sol";
 
@@ -24,15 +24,13 @@ contract NAD is ERC721Reservations {
      using Strings for uint256;
      using Strings for int256;
 
-
-      string topSVG = 
-      '<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewbox="0 0 1080 1080">'
-      '<filter id="makeBlack">'
-      '<feColorMatrix type="matrix"'
-      ' values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>';
+     struct ConstructedNFT {
+        string svg;
+        string attributes;
+        string name;
+     }
 
     
-
 
     NDMotifDataManager public motifDataManager;
   
@@ -51,24 +49,25 @@ contract NAD is ERC721Reservations {
 
 
 
-    function tokenURI(uint256 tokenId) public override view returns (string memory) {
-    //    _requireOwned(tokenId);
-    
-        return generateNFT(tokenId);
-    }
-
+  
     function tokenUriWithTime(uint256 tokenId, uint256 timestamp) public view returns (string memory) {
-        return generateNFT(tokenId, timestamp);
+
+        ConstructedNFT memory nft = generateNFT(tokenId, timestamp);
+
+        string memory base64SVG = string.concat( '"image": "data:image/svg+xml;base64,', Base64.encode(bytes(nft.svg)), '"');
+         string memory base64JSON =  string.concat('data:application/json;base64,', Base64.encode(bytes(string.concat('{"description" : "juhu", "name":"',nft.name, '",', nft.attributes,'],', base64SVG, '}'))));
+        return base64JSON;
     }
 
-    function generateNFT(uint256 tokenId, uint256 _timestamp) public view returns (string memory) {
+    function generateNFT(uint256 tokenId, uint256 timestamp) public view returns (ConstructedNFT memory) {
 
 
         Motif memory motif  = motifDataManager.getMotifByTokenId(tokenId);
 
-        string memory motifSVG = motif.svg;
+        ConstructedNFT memory constructedNFT;
 
-        uint timestamp = _timestamp;
+        constructedNFT.svg = motif.svg;
+
         uint sunrise;
         uint sunset;
         string memory sunSVG;
@@ -94,32 +93,31 @@ contract NAD is ERC721Reservations {
          (int moonAzimuth, int moonAltitude, int parallacticAngle) = SunCalc.getMoonPosition( motif.lat * 1e12, motif.lng * 1e12, timestamp * 1e18);
 
 
-          (int fraction, int phase, int angle )  = SunCalc.getMoonIllumination(timestamp * 1e18);
+          (int fraction, , int angle )  = SunCalc.getMoonIllumination(timestamp * 1e18);
 
 
           moonSVG = NDRenderer.renderMoon( motif.motifType,  motif.heading * 1e4, motif.horizon * 1e4, moonAzimuth / 1e14, moonAltitude / 1e14, parallacticAngle / 1e14, fraction / 1e14, angle / 1e14);
            string memory waterColor;
           ( skyColor, waterColor) = NDRenderer.getSkyColor(altitude / 1e16);
-           motifSVG = NDRenderer.replaceFirst(motifSVG, "<!--watercolor-->", waterColor);
+           constructedNFT.svg = NDRenderer.replaceFirst(constructedNFT.svg, "<!--watercolor-->", waterColor);
 
-
-
-        
         uint randomFlower = NDRenderer.randomNum(tokenId, 0, 2);        
 
          FlowerType flowerType =  FlowerType(randomFlower);
          bool hasPot = motif.motifType != MotifType.SIGHT_SEEING;
+         constructedNFT.attributes = NDRenderer.createStandardAttributes(motif, flowerType);
+
 
         (string memory blossom, string memory stick, string memory back, string memory front) = flowerType == FlowerType.ROSE ? motifDataManager.getRose() : flowerType == FlowerType.SUNFLOWER ? motifDataManager.getSunflower() : motifDataManager.getGentian(); 
-         motifSVG = NDRenderer.renderFlower(motifSVG, azimuth / 1e14, altitude / 1e16, motif.heading * 1e4, flowerType, blossom, stick, back, front, hasPot);
+         constructedNFT.svg = NDRenderer.renderFlower(constructedNFT.svg, azimuth / 1e14, altitude / 1e16, motif.heading * 1e4, flowerType, blossom, stick, back, front, hasPot);
 
          nightSVG = NDRenderer.applyNight( altitude / 1e14, motif.motifType);
         }
 
          AssetInScene[] memory assetInScene = motifDataManager.getAssetInScene();
          string memory maskedAssetsSVG;
-        (motifSVG, maskedAssetsSVG) = NDRenderer.renderMainScene(motifSVG, timestamp, tokenId, motif.scenes, assetInScene, sunrise, sunset);
-         motifSVG = NDRenderer.renderReplacements(motifSVG, motif.replacements);
+        (constructedNFT.svg, maskedAssetsSVG) = NDRenderer.renderMainScene(constructedNFT.svg, timestamp, tokenId, motif.scenes, assetInScene, sunrise, sunset);
+         constructedNFT.svg = NDRenderer.renderReplacements(constructedNFT.svg, motif.replacements);
          string memory skySceneSVG = renderAirplanes( timestamp, tokenId, uint(motif.horizon), motif.heading);
 
                   // take first second of day and add token id to it
@@ -127,36 +125,48 @@ contract NAD is ERC721Reservations {
          string memory cloudsSVG = NDRenderer.generateClouds( motif.horizon, cloudNonce);
          
         if (motif.motifType == MotifType.BEACH) {
-            motifSVG = renderBeachTraits(motifSVG, tokenId);
+            constructedNFT = renderBeachTraits(constructedNFT, tokenId);
         }
 
         if(motif.motifType == MotifType.SKYSCRAPER) {
-            motifSVG = renderCityTraits(motifSVG, tokenId);
+            constructedNFT = renderCityTraits(constructedNFT, tokenId);
         }
 
         if(motif.motifType == MotifType.LANDSCAPE) {
-            motifSVG = renderLandscapeTraits(motifSVG, tokenId);
+            constructedNFT = renderLandscapeTraits(constructedNFT, tokenId);
         }
 
         if(motif.motifType != MotifType.SIGHT_SEEING) {
-            motifSVG = renderNFTInside(motifSVG, tokenId, _timestamp);
+            constructedNFT.svg = renderNFTInside(constructedNFT.svg, tokenId, timestamp);
         }
 
 
 
-       string memory outputSVG = renderNFT(skyColor, motif.motifType, motifSVG, sunSVG, cloudsSVG, skySceneSVG, maskedAssetsSVG, moonSVG, nightSVG);
+        constructedNFT.svg = renderNFT(skyColor, motif.motifType, constructedNFT.svg, sunSVG, cloudsSVG, skySceneSVG, maskedAssetsSVG, moonSVG, nightSVG);
+        constructedNFT.name = motif.name;
 
-        return outputSVG;
+
+       
+
+
+
+        return constructedNFT;
     }
 
     function renderNFT(string memory skyColor, MotifType motifType, string memory motifSVG, string memory sunSVG, string memory cloudsSVG, string memory skySceneSVG, string memory maskedAssetsSVG, string memory moonSVG, string memory nightSVG) public view returns (string memory) {
 
 
         string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
+        string memory topSVG = 
+        '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1080 1080">'
+        '<filter id="makeBlack">'
+        '<feColorMatrix type="matrix"'
+        ' values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>';
 
 
 
-         string memory assetsSVG = motifDataManager.assets();
+
+        string memory assetsSVG = motifDataManager.assets();
 
         string memory skyBGSVG = string.concat('<rect fill="', skyColor, '" width="1080" height="1080"/>');
         string memory skyBehind = string.concat(topSVG, skyBGSVG , sunSVG, cloudsSVG, skySceneSVG, assetsSVG);
@@ -172,79 +182,6 @@ contract NAD is ERC721Reservations {
 
     }
 
-
-
-    function generateNFT(uint256 tokenId) public view returns (string memory) {
-
-   
-
-    //     Motif memory motif  = motifDataManager.getMotifByTokenId(tokenId);
-
-
-    //     string memory outputSVG = motif.svg;
-
-    //     uint timestamp = block.timestamp;
-
-
-
-    //      (int azimuth, int altitude) = SunCalc.getPosition(motif.lat * 1e12, motif.lng * 1e12, timestamp * 1e18);
-    //      (uint sunrise, uint sunset) = SunCalc.getSunRiseSet(timestamp * 1e18, motif.lat * 1e12, motif.lng * 1e12);
-
-    //      outputSVG = NDRenderer.renderSun(outputSVG, uint(motif.horizon) * 1e4, azimuth / 1e14, altitude / 1e14, uint(motif.heading) * 1e4);
-
-
-
-    //      (int moonAzimuth, int moonAltitude, int parallacticAngle) = SunCalc.getMoonPosition( motif.lat * 1e12, motif.lng * 1e12, timestamp * 1e18);
-
-
-    //       (int fraction, int phase, int angle )  = SunCalc.getMoonIllumination(timestamp * 1e18);
-
-    //       outputSVG = NDRenderer.renderMoon(outputSVG, motif.motifType,  motif.heading * 1e4, motif.horizon * 1e4, moonAzimuth / 1e14, moonAltitude / 1e14, parallacticAngle / 1e14, fraction / 1e14, angle / 1e14);
-
-    //       outputSVG = NDRenderer.setSkyColor(outputSVG, altitude / 1e16);
-
-    //       outputSVG = NDRenderer.applyNight(outputSVG, altitude / 1e14, motif.motifType);
-    //      // take first second of day and add token id to it
-    //       uint cloudNonce = block.timestamp - (block.timestamp  % 86400) + tokenId;
-    //      outputSVG = NDRenderer.generateClouds(outputSVG, motif.horizon, cloudNonce);
-
-
-    //       uint randomFlower = NDRenderer.randomNum(tokenId, 0, 2);        
-
-    //      FlowerType flowerType =  FlowerType(randomFlower);
-    //       bool hasPot = motif.motifType != MotifType.SIGHT_SEEING;
-         
-    //     (string memory blossom, string memory stick, string memory back, string memory front) = flowerType == FlowerType.ROSE ? motifDataManager.getRose() : flowerType == FlowerType.SUNFLOWER ? motifDataManager.getSunflower() : motifDataManager.getGentian(); 
-    //      outputSVG = NDRenderer.renderFlower(outputSVG, azimuth / 1e14, altitude / 1e16, motif.heading * 1e4, flowerType, blossom, stick, back, front, hasPot);
-
-
-         
-    //      AssetInScene[] memory assetInScene = motifDataManager.getAssetInScene();
-    //      //outputSVG = NDRenderer.renderMainScene(outputSVG, timestamp, tokenId, motif.scenes, assetInScene, sunrise, sunset);
-    //      outputSVG = NDRenderer.renderReplacements(outputSVG, motif.replacements);
-    //      outputSVG = renderAirplanes(outputSVG, timestamp, tokenId, uint(motif.horizon), motif.heading);
-         
-    //     if (motif.motifType == MotifType.BEACH) {
-    //         outputSVG = renderBeachTraits(outputSVG, tokenId);
-    //     }
-
-    //     if(motif.motifType == MotifType.SKYSCRAPER) {
-    //         outputSVG = renderCityTraits(outputSVG, tokenId);
-    //     }
-
-    //     if(motif.motifType == MotifType.LANDSCAPE) {
-    //         outputSVG = renderLandscapeTraits(outputSVG, tokenId);
-    //     }
-
-    //     if(motif.motifType != MotifType.SIGHT_SEEING) {
-    //    //     outputSVG = renderNFTInside(outputSVG, tokenId);
-    //     }
-
-
-        return "";
-
-
-    }
     function renderAirplanes(        
         uint timestamp, 
         uint tokenId, uint horizonInPx, int heading) public pure returns (string memory) {
@@ -274,26 +211,27 @@ contract NAD is ERC721Reservations {
 
         }
 
-        function renderBeachTraits(string memory svg, uint tokenId) public view returns (string memory) {
+        function renderBeachTraits(ConstructedNFT memory nft, uint tokenId) public view returns (ConstructedNFT memory) {
             
-            (string memory beachColor, string memory beachColorTrait) =  motifDataManager.getBeachColor(tokenId);
-            svg = NDRenderer.replaceFirst(svg, "<!--bc-->", beachColor);
-            (string memory skinColor, string memory skinColorTrait) =  motifDataManager.getSkinColor(tokenId);
-            svg = NDRenderer.replaceFirst(svg, "<!--sc-->", skinColor);
-            return svg;
+            (string memory beachColor, string memory beachColorAttribute) =  motifDataManager.getBeachColor(tokenId);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--bc-->", beachColor);
+            nft.attributes = string.concat(nft.attributes, beachColorAttribute);
+            (string memory skinColor, string memory skinColorAttribute) =  motifDataManager.getSkinColor(tokenId);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--sc-->", skinColor);
+            nft.attributes = string.concat(nft.attributes, skinColorAttribute);
+            return nft;
         } 
 
         function renderNFTInside(string memory svg, uint tokenId, uint timestamp) public view returns (string memory) {
             
             uint sightSeeingTokenId = NDRenderer.randomNum(tokenId, 0, 18);
+            ConstructedNFT memory nft = generateNFT(sightSeeingTokenId, timestamp);
 
-            string memory externalNft = generateNFT(sightSeeingTokenId, timestamp);
-
-            return NDRenderer.replaceFirst(svg, "<!--nft-->", externalNft);
+            return NDRenderer.replaceFirst(svg, "<!--nft-->", nft.svg);
         }
 
 
-        function renderCityTraits(string memory svg, uint tokenId) public view returns (string memory) {
+        function renderCityTraits(ConstructedNFT memory nft, uint tokenId) public view returns (ConstructedNFT memory) {
 
 
             //RENDER SkYLINE
@@ -301,12 +239,14 @@ contract NAD is ERC721Reservations {
             uint skyLineType = motifDataManager.getSkylineType(tokenId);
             for(uint i = 0; i < skyLineTypes.length; i++) {
                 string memory skylineString = skyLineTypes[i];
-                svg = NDRenderer.replaceFirst(svg, string.concat("<!--", skylineString, "-->"), i <=skyLineType ? "visible" : "hidden");
+                nft.svg = NDRenderer.replaceFirst( nft.svg, string.concat("<!--", skylineString, "-->"), i <=skyLineType ? "visible" : "hidden");
             }
+            nft.attributes = string.concat(nft.attributes, ',{"trait_type": "Skyline", "value": "', skyLineTypes[skyLineType], '"}');
 
-            bool isCityCoastel = motifDataManager.isCityCoastel(tokenId);
+            (bool isCityCoastel, string memory attribute) = motifDataManager.isCityCoastel(tokenId);
+            nft.attributes = string.concat(nft.attributes, attribute);
 
-            svg = NDRenderer.replaceFirst(svg, "<!--coastal-->", isCityCoastel ? "visible" : "hidden");
+             nft.svg = NDRenderer.replaceFirst( nft.svg, "<!--coastal-->", isCityCoastel ? "visible" : "hidden");
 
          
             //RENDER CHART
@@ -318,11 +258,12 @@ contract NAD is ERC721Reservations {
             prices[1] = firstUpdatedAt;
 
             string memory description = dataFeed.description();
+            nft.attributes = string.concat(nft.attributes, ',{"trait_type":"Trading Chart","value":"', description, '"}');
             firstRoundID--;
             for(uint i = 2; i < 16; i+=2) {
-                (, int price, , uint updatedAt , ) = dataFeed.getRoundData(firstRoundID);
+                (,  price, ,  firstUpdatedAt , ) = dataFeed.getRoundData(firstRoundID);
                 prices[i] = uint(price);
-                prices[i+1] = updatedAt;
+                prices[i+1] = firstUpdatedAt;
                 firstRoundID--;
             }
 
@@ -363,30 +304,41 @@ contract NAD is ERC721Reservations {
             string memory chartSVG = string.concat('<path d="', chart,'" fill="none" stroke="#FFDB19" stroke-width="4" />');
             string memory descriptionSVG = string.concat('<text x="20" y="620" fill="#9400E3" font-family="Arial-Black" font-size="24px">',description, '</text>');
             
-            return NDRenderer.replaceFirst(svg, "<!--chart-->", string.concat(chartSVG, descriptionSVG));
+            nft.svg =  NDRenderer.replaceFirst(nft.svg, "<!--chart-->", string.concat(chartSVG, descriptionSVG));
+            return nft;
         }
 
 
-        function renderLandscapeTraits(string memory svg, uint tokenId) public view returns (string memory) {
+        function renderLandscapeTraits(ConstructedNFT memory nft, uint tokenId) public view returns (ConstructedNFT memory) {
+
+            string memory hidden = "hidden";
+            string memory visible = "visible";
+
             
+
             (string memory landscapeColor, string memory landscapeColorTrait, uint climateZoneIndex) =  motifDataManager.getClimateZoneForLandscape(tokenId);
-            svg = NDRenderer.replaceFirst(svg, "<!--cc-->", landscapeColor);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--cc-->", landscapeColor);
+            nft.attributes = string.concat(nft.attributes, landscapeColorTrait);
             
-            svg = NDRenderer.replaceFirst(svg, "<!--polar-->", climateZoneIndex == 0 ? "visible" : "hidden");
-            svg = NDRenderer.replaceFirst(svg, "<!--temperate-->",  climateZoneIndex == 1 ? "visible" : "hidden");
-            svg = NDRenderer.replaceFirst(svg, "<!--desert-->", climateZoneIndex == 2 ? "visible" : "hidden");
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--p-->", climateZoneIndex == 0 ? visible : hidden);
+            nft.svg= NDRenderer.replaceFirst(nft.svg, "<!--t-->",  climateZoneIndex == 1 ? visible : hidden);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--d-->", climateZoneIndex == 2 ? visible : hidden);
 
-             (bool hasCity,bool hasRiver,bool hasMountains,bool hasOcean) = motifDataManager.getLandScapeTraits(tokenId);
+             (bool hasCity,bool hasRiver,bool hasMountains,bool hasOcean, string memory sTraits) = motifDataManager.getLandScapeTraits(tokenId);
 
-            svg = NDRenderer.replaceFirst(svg, "<!--city-->", hasCity ? "visible" : "hidden");
-            svg = NDRenderer.replaceFirst(svg, "<!--river-->", hasRiver ? "visible" : "hidden");
-            svg = NDRenderer.replaceFirst(svg, "<!--mountains-->", hasMountains ? "visible" : "hidden");
-            svg = NDRenderer.replaceFirst(svg, "<!--ocean-->", hasOcean ? "visible" : "hidden");
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--c-->", hasCity ? visible : hidden);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--r-->", hasRiver ? visible : hidden);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--m-->", hasMountains ? visible : hidden);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--o-->", hasOcean ? visible : hidden);
+            nft.attributes = string.concat(nft.attributes, sTraits);
+
+            (string memory skinColor, string memory skinColorAttribute) =  motifDataManager.getSkinColor(tokenId);
+            nft.svg = NDRenderer.replaceFirst(nft.svg, "<!--sc-->", skinColor);
+            nft.attributes = string.concat(nft.attributes, skinColorAttribute);
 
 
 
-            
-            return svg;
+            return nft;
         }
 
 

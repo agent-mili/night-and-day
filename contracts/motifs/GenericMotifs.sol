@@ -10,13 +10,47 @@
         }
 
         function getSkyscraper(uint index) public pure returns (bytes memory) {
-            string[76] memory motifs = [hex"03121456fffec33200d14c6f6e646f6e",hex"02ea15fc002228f000a55061726973",hex"02fca30c00845c4800b44672616e6b66757274",hex"02d312dc0081f49100d85ac3bc72696368",hex"02693d8bffc7abb800b44d6164726964",hex"031cfe40014087b800a05761727363686175",hex"03181a6000445f25009a526f7474657264616d",hex"02b5f38c008bb82e00c94d61696c616e64",hex"02dff9ce00fa761600b45769656e",hex"0272d6f201baa66700a9497374616e62756c",hex"0352ab7f023cb94a00954d6f736b6175",hex"038a67ca0111cffa009253746f636b686f6c6d",hex"0308164e0042829e00c74272c3bc7373656c",hex"fe9883c5fd380913002c53616f205061756c6f",hex"fdefda01fc857b8e000a4275656e6f73204169726573",hex"fe020d6cfbcaad26015653616e746961676f206465204368696c65",hex"ff46d4fafb68a7c001364c696d61",hex"00465693fb95ccf1012b426f676f7461",hex"00a0326dfc032bc8011943617261636173",hex"fdeb83d3fca691ce01624d6f6e7465766964656f",hex"fe7e25d5fc906faf00204173756e63696f6e",hex"ff0441cbfbf0614f012f4c612050617a",hex"00d12e75faae4263005d53616e2053616c7661646f72",hex"fe70205c01abfdd401604a6f68616e6e657362757267",hex"ffec28880231b4bf005d4e6169726f6269",hex"00626b030033c25c00794c61676f73",hex"0089829f024f5e2501104164646973204162656261",hex"ff97e3de02575eef00444461722065732053616c61616d",hex"ff798c6100c9e9c3005a4c75616e6461",hex"0054ca21fffceb1200844163637261",hex"00513f76ffc2ab7e005a41626964696a616e",hex"01ca5efc01dc94ea011b4b6169726f",hex"02319819009b6a6a00a554756e6973",hex"023098f600301e620095416c67696572",hex"020023eeff8b138c009243617361626c616e6361",hex"026df430fb97333b00d04e657720596f726b2043697479",hex"029a121bfb44bdda00a3546f726f6e746f",hex"027f0f03fac6d4d600b24368696361676f",hex"020798e8f8f38f5500b44c6f7320416e67656c6573",hex"0240b4c5f8b4483100ab53616e204672616e636973636f",hex"018919c7fb38581d00584d69616d69",hex"01286640fa16c55900f34d657869636f2043697479",hex"0181cb6403127ef50057446f6861",hex"01807a68034b6b1400b44475626169",hex"0167fcea037b929400744d61736b6174",hex"01795d5002c82128009952696164",hex"0146d6e6025fa8fa00584d656b6b61",hex"01e49f020219401800644a65727573616c656d",hex"0174fcbb033da3780096416275204468616269",hex"01fc528c02a4fe5a00ac426167646164",hex"01ff56c60229e896006044616d61736b7573",hex"0220fe52030f404e00be5465686572616e",hex"0260ed5a01f55c66009e416e6b617261",hex"01e16918046e64ba000c4c61686f7265",hex"012313fa04580572000c4d756d626169",hex"01b49d33049a1dbf000c4e65752d44656c6869",hex"01586e6505445374000c4b616c6b75747461",hex"00d1e7ab05fd8905000c42616e676b6f6b",hex"0140de9f064e7411000c48616e6f69",hex"016b511b056395e9000c4468616b61",hex"0260e3c806f03c64000c50656b696e67",hex"01c31b700659d2f4000c43686f6e6771696e67",hex"0157fafb06cc628c000c5368656e7a68656e",hex"01dc89b7073d8aa5000c5368616e67686169",hex"0220940f085386bf000c546f6b696f",hex"023d3848079187ae000c53656f756c",hex"030cc870044239f2000c417374616e61",hex"025ca90403fdf4fd000c53616d61726b616e64",hex"002fe5bb060f9e47000c4b75616c61204c756d707572",hex"0014a19306302a3f000c53696e6761707572",hex"ffa14305065e559f000c4a616b61727461",hex"00dec5580736129e000c4d616e696c61",hex"fdfb33ec09034550000c5379646e6579",hex"fdbf028308a3f5f2000c4d656c626f75726e65",hex"fde5a7d708e38b19000c43616e6265727261",hex"fdcdbcb30a6aad48000c4175636b6c616e64"];
+            string[77] memory motifs = [hex"03121456fffec33200d14c6f6e646f6e",hex"02ea15fc002228f000a55061726973",hex"02fca30c00845c4800b44672616e6b66757274",hex"02d312dc0081f49100d85ac3bc72696368",hex"02693d8bffc7abb800b44d6164726964",hex"031cfe40014087b800a05761727363686175",hex"03181a6000445f25009a526f7474657264616d",hex"02b5f38c008bb82e00c94d61696c616e64",hex"02dff9ce00fa761600b45769656e",hex"0272d6f201baa66700a9497374616e62756c",hex"0352ab7f023cb94a00954d6f736b6175",hex"038a67ca0111cffa009253746f636b686f6c6d",hex"0308164e0042829e00c74272c3bc7373656c",hex"fe9883c5fd380913002c53616f205061756c6f",hex"fdefda01fc857b8e000a4275656e6f73204169726573",hex"fe020d6cfbcaad26015653616e746961676f206465204368696c65",hex"ff46d4fafb68a7c001364c696d61",hex"00465693fb95ccf1012b426f676f7461",hex"00a0326dfc032bc8011943617261636173",hex"fdeb83d3fca691ce01624d6f6e7465766964656f",hex"fe7e25d5fc906faf00204173756e63696f6e",hex"ff0441cbfbf0614f012f4c612050617a",hex"00d12e75faae4263005d53616e2053616c7661646f72",hex"fe70205c01abfdd401604a6f68616e6e657362757267",hex"ffec28880231b4bf005d4e6169726f6269",hex"00626b030033c25c00794c61676f73",hex"0089829f024f5e2501104164646973204162656261",hex"ff97e3de02575eef00444461722065732053616c61616d",hex"ff798c6100c9e9c3005a4c75616e6461",hex"0054ca21fffceb1200844163637261",hex"00513f76ffc2ab7e005a41626964696a616e",hex"01ca5efc01dc94ea011b4b6169726f",hex"02319819009b6a6a00a554756e6973",hex"023098f600301e620095416c67696572",hex"020023eeff8b138c009243617361626c616e6361",hex"026df430fb97333b00d04e657720596f726b2043697479",hex"029a121bfb44bdda00a3546f726f6e746f",hex"027f0f03fac6d4d600b24368696361676f",hex"020798e8f8f38f5500b44c6f7320416e67656c6573",hex"0240b4c5f8b4483100ab53616e204672616e636973636f",hex"018919c7fb38581d00584d69616d69",hex"01286640fa16c55900f34d657869636f2043697479",hex"0181cb6403127ef50057446f6861",hex"01807a68034b6b1400b44475626169",hex"0167fcea037b929400744d61736b6174",hex"01795d5002c82128009952696164",hex"0146d6e6025fa8fa00584d656b6b61",hex"01e49f020219401800644a65727573616c656d",hex"0174fcbb033da3780096416275204468616269",hex"01fc528c02a4fe5a00ac426167646164",hex"01ff56c60229e896006044616d61736b7573",hex"0220fe52030f404e00be5465686572616e",hex"0260ed5a01f55c66009e416e6b617261",hex"017c5c6c03fee01b007f4b6172617473636869",hex"01e0a5b3046e178d00a64c61686f7265",hex"0123c7bf0457752500c34d756d626169",hex"01b38c1f0497734500b44e65752d44656c6869",hex"015798a1054386d700ad4b616c6b75747461",hex"00d1b62d05fdfa3f011542616e676b6f6b",hex"0140c7c1064eef6e00c648616e6f69",hex"016b0c8b05631f1400924468616b61",hex"0260bcaa06eff416008750656b696e67",hex"01c234ab06594b7c00eb43686f6e71696e67",hex"0157e14506c2687b00965368656e7a68656e",hex"01dc28d5073d159f00a75368616e67686169",hex"022079800853c00300d4546f6b696f",hex"023cc0a5078f48ec00c153656f756c",hex"030c6bc70441ee4100dc417374616e61",hex"025ccba703fdf24b00b253616d61726b616e64",hex"003010fe060f7c0300ac4b75616c61204c756d707572",hex"0013ffb1063027c2009c53696e6761707572",hex"ffa189b9065f632600b44a616b61727461",hex"00df108a0735f43e00bf4d616e696c61",hex"fdfc5a4508ff366200a35379646e6579",hex"fdbe518208a2b48d00a94d656c626f75726e65",hex"fde62e1f08e41f97009343616e6265727261",hex"fdcceaf70a6ca0f3006b4175636b6c616e64"];
             return bytes(motifs[index]);
         }
 
         function getLandscape(uint index) public pure returns (bytes memory) {
             string[85] memory motifs = [hex"02028d97f953b33100d250686f656e6978",hex"016ba42501f6f8f800ef756e6b6e6f776e",hex"fe96ba6107fb2bff00d2416c69636520537072696e6773",hex"fea20119fbef0264003b53616e20506564726f2064652041746163616d612c204368696c65",hex"00ff857dffd1f343001454696d62756b7475",hex"0230362904e837b000b64d6f6e676f6c6569",hex"01f774a5f9a9d67f00a257686974652053616e6473",hex"022965f7f925936a00ea6c6173205665676173204e6576616461",hex"023b5baaf969308500804d6f6e756d656e742056616c6c6579",hex"0271fb82061e671900b94368696e61",hex"00ec959501eeb53a0052537564616e",hex"fea4116800e19844011b4e616d69626961",hex"024d76e0f96e8b1a00b44d6f6162",hex"fe079ba1fbe734f401484d656e646f7a61",hex"00ea29e002a1a7b8005859656d656e",hex"024435d8037b94d600d24173676861626174",hex"0192f2d7045c37e100a74a6f6470687572",hex"0192f2d7045c37e100a74d7573636174",hex"01b68a790221b9fb00fc4a6f7264616e69656e",hex"02387becffc71a5200bc477561646978",hex"0137ecf902f9592200b552756220616c204b68616c69",hex"fe8fa9df081e283c000053696d70736f6e20446573657274",hex"ff2cd18efb718c7a014570657275",hex"fe9d8e0bfbce6eb901544174746163616d61",hex"020f2887f91d34d900a84d6f6a61766520446573657274",hex"fe7f8b490143e67000004b616c6168617269",hex"02a8ce5c066768c500b4476f6269",hex"01a04ead01ae66bf00b357686974652064657373657274",hex"020f7f95f92eb79000e4436f6c6f7261646f205269766572",hex"017fed0c035bbcdb008d46756a6169726168",hex"001fadcb02b3082c00854d6f6761646973636875",hex"010336ae014d513200c3456e65646920506c61746575",hex"012e8cd60128446f0115456d69204b6f75737369",hex"ffbddee400e80c0000644b696e7368617361",hex"0301e9eb01d201c500be4b696576",hex"020f61b00247c464005d50616c6d797261",hex"03d701d1feffd1a2000c5661746e616ac3b66b756c6c",hex"04c0b3bd00b0140500314e6f72736c6f79616e65",hex"04eac61bfc48b0b7015d416c657274",hex"043dfdf70189784400044e6f7274682043617065",hex"03d23601feb53c1101175265796b6c6176696b",hex"043fa25af6a7ce04014b426172726f77",hex"040b29a90136d5ea01214b6972756e61",hex"fcbb75c2fbed6d8a013f55736875616961",hex"03c83cc308829b81001a4f796d79616b6f6e",hex"04f3f8cefbccd02e01654361706520436f6c756d626961",hex"01f9598b057c8513003951696e67205a616e67",hex"0256854a0452e8fd00b450616d6972204d6f756e7461696e73",hex"0227c832048278a4004a4368616e6774616e67",hex"02c631600079d53c00874a756e67667261756a6f6368",hex"01abdb0e052f7e6900e94d742045766572657374",hex"fc0c79350602883c00b2416e7461726374696361",hex"0493c43e0401732b014372757373696120617263746973",hex"029cc42b00a84717003e466c6f72656e7a",hex"0294e45300539d9c00f74d61727365696c6c65",hex"030a254c00aced9900d65765696d6172",hex"02376b36faacfe3d00bd4d69737369737369707069",hex"036a47e5ffbb6b2400644c6f6368204e657373",hex"0365eace0294715100c7566f6c6761",hex"02b94b950186d8e400b45472616e73696c76616e69656e",hex"ffbcbcaa06424a2500004d616c6179736961",hex"fdcd7aec08a5e72b00294d7572726179",hex"031005e50066783700744475697362757267",hex"02fbc4fd012f8fed00874b72616b6f77",hex"02d52ad70122a88a00524275646170657374",hex"02bf39d000dddf9f00b54c6a75626c6a616e61",hex"02412761f8b25068007f53616e204672616e636973636f",hex"02602b79ffc2b99e0105546f6c65646f",hex"0230d55f0852410d00bc4e696b6b6f",hex"017e2d9f073df47f006c546169706568",hex"0199451f05f96aad015f4c696a616e67",hex"016028bcfb16b1a80013486176616e6e61",hex"0118b567fb6b5e0b009f4b696e6773746f776e20546f776e",hex"031f4920063624cc00b249726b7574736b",hex"03571a2f058a960d012a4b7261736e6f796172736b",hex"0347d1d204f075e600b14e6f766f7369626972736b",hex"030ce102f91c6d1b004a42616e6666",hex"02d63094fcdaedf9008153742e204a6f686e2773",hex"02b8db21fb9ece9900df4d6f6e747265616c",hex"03d1739af7afed9a0059446177736f6e",hex"03c19885f850570b00a26e6161747369686368276f68",hex"fed676b6fd776a810142496769616375",hex"002b1663fc628a610118426f61205669737461",hex"ff0d7113fd2190fa004742726173696c6961",hex"ff4982a7010db698014b4375616e7a61"];
             return bytes(motifs[index]);
+        }
+
+        function getHorizon(MotifType motifType) public pure returns (uint) {
+
+            if (motifType == MotifType.BEACH) {
+                return 310;
+            }
+            if (motifType == MotifType.SKYSCRAPER) {
+                return 475;
+            }
+            if (motifType == MotifType.LANDSCAPE) {
+                return 359;
+            }
+            return 0;
+        }
+
+        function getScene(MotifType motifType) public pure returns (SceneInMotif[] memory) {
+            SceneInMotif[] memory sceneInMotif;
+            if (motifType == MotifType.BEACH) {
+                sceneInMotif = new SceneInMotif[](0);
+                
+            } else if (motifType == MotifType.SKYSCRAPER) {
+               sceneInMotif = new SceneInMotif[](1);
+                {
+                        uint8[] memory assets = new uint8[](1);
+                        assets[0] = 2;
+                        sceneInMotif[0] = SceneInMotif("main", assets, [int(733), int(941), int(310), int(105)
+                    ], 300);
+                    }
+            } else if (motifType == MotifType.LANDSCAPE) {
+                sceneInMotif = new SceneInMotif[](0);
+                
+            }
+            return sceneInMotif;
 
         }
 
@@ -25,24 +59,25 @@
 
             uint8 [88] memory beachColorIndexes = [1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,0,0,0,4,4,4,4,3,4,3,3,4,3,3,4,4,4,4,4,4,4,4,4,4,3,4,4,4,4,2,3,3,4,2,3,3,4,3,4,4,4,5,5,5,5,5,5,4,5,4,5,5,5,5,4,5,5,4,6,4,5,5,4,4,4]; 
             string[6] memory beachColors = ["#ffa0e7", "#9bb224", "#4b3d66", "#ffd700", "#fff5bf", "#ffdef6"];
+            string [6] memory beachTraits = ["Pink", "Green", "Black", "Gold", "White", "Cream"];
+
             uint colorIndex = beachColorIndexes[index];
             string memory beachColor =  beachColors[colorIndex];
-            string memory trait = "Placeholder";
+            string memory attribute = string.concat(',{"trait_type":"Beach Color","value":"', beachTraits[colorIndex], '"}');
          
 
-            return (beachColor, trait);
+            return (beachColor, attribute);
  
         }
 
 
-        function getBeachSkinColor(uint index) public pure returns (string memory, string memory) {
+        function getSkinColor(uint index) public pure returns (string memory, string memory) {
 
             string[10] memory skinColors = ["#ffcabf", "#ffcc99", "#e6ae76", "#cc8f52", "#bb7f43", "#aa7035", "#925b2d", "#7a4625", "#ffcc73", "#ffcc4d"];
             uint skinColorIndex = (index * 3) % 10;
             string memory skinColor = skinColors[skinColorIndex];
-            string memory trait = "Placeholder";
-
-            return (skinColor, trait);
+            string memory attribute = string.concat(',{"trait_type":"Skin Color","value":"', skinColor, '"}');
+            return (skinColor, attribute);
         }
 
         function getTradingChartAddress(uint index) public pure returns (address) {
@@ -53,16 +88,16 @@
         }
 
         function getSkylineType (uint index) public pure returns (uint) {
-            uint8[76] memory cityTypes = [3,3,2,1,2,1,1,2,2,3,3,1,1,3,2,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,2,1,1,1,3,2,3,2,2,2,3,2,3,1,3,0,0,2,1,0,2,1,1,3,3,2,2,1,1,3,2,2,3,3,2,1,0,2,3,3,2,3,2,0,1];
+            uint8[77] memory cityTypes = [3,3,2,1,2,1,1,2,2,3,3,1,1,3,2,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,2,1,1,1,3,2,3,2,2,2,3,2,3,1,3,0,0,2,1,0,2,1,1,1,3,3,2,2,1,1,3,2,2,3,3,2,1,0,2,3,3,2,3,2,0,1];
             uint cityType = cityTypes[index];
-            string memory trait = "Placeholder";
             return cityType;
         }
 
-        function isCityCoastal(uint index) public pure returns (bool) {
-            uint8[76] memory coastelIndexes = [0,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,1,0,1,1,0,0,0,0,0,1,0,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,1,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,1];
+        function isCityCoastal(uint index) public pure returns (bool, string memory) {
+            uint8[77] memory coastelIndexes = [0,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,1,0,1,1,0,0,0,0,0,1,0,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,1,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,1];
             bool isCoastel = coastelIndexes[index] == 1;
-            return isCoastel;
+            string memory attribute = string.concat(',{"trait_type":"Coastel","value":"', isCoastel ? "Yes" : "No", '"}');
+            return (isCoastel, attribute);
         }
 
         function getClimateZoneForLandscape(uint index) public pure returns (string memory, string memory, uint) {
@@ -70,12 +105,12 @@
             string[3] memory climateZoneTraits = ["Polar", "Temperate", "Desert"];
             string[3] memory climateZoneColors = ["#DFB2F7", "#B9C966", "#F9B233"];
             uint climateZoneIndex = climateZones[index];
-            string memory trait =   climateZoneTraits[climateZoneIndex];
+            string memory attributes = string.concat(',{"trait_type":"Climate Zone","value":"', climateZoneTraits[climateZoneIndex], '"}');
             string memory climateZoneColor = climateZoneColors[climateZoneIndex];
-            return (climateZoneColor, trait, climateZoneIndex);
+            return (climateZoneColor, attributes, climateZoneIndex);
         }
 
-        function getLandscapeTraits(uint index) public pure returns (bool, bool, bool, bool ) {
+        function getLandscapeTraits(uint index) public pure returns (bool, bool, bool, bool, string memory ) {
 
             // combine three bools/trais into one uint use bit shifting
             uint8[85] memory traits = [5,2,5,5,3,4,0,5,0,0,3,8,0,5,5,5,1,9,4,4,0,0,8,8,0,0,0,0,2,9,9,0,4,3,3,1,0,4,9,8,9,9,5,5,5,8,4,4,4,4,4,2,8,7,9,1,2,2,2,5,2,2,3,3,3,7,3,3,7,3,5,9,9,3,3,3,7,9,3,7,6,7,3,1,2];
@@ -86,8 +121,18 @@
             bool hasMountains = (landscapeTrait & 4) == 4;
             bool hasOcean = (landscapeTrait & 8) == 8;
 
+            string memory attributes;
+            string memory YES = "Yes";
+            string memory NO = "No";
 
-            return (hasCity, hasRiver, hasMountains, hasOcean);
+            attributes = string.concat(',{"trait_type":"City","value":"', hasCity ? YES : NO, '"}');
+            attributes = string.concat(attributes, ',{"trait_type":"River","value":"', hasRiver ? YES :NO, '"}');
+            attributes = string.concat(attributes, ',{"trait_type":"Mountains","value":"', hasMountains ?YES : NO, '"}');
+            attributes = string.concat(attributes, ',{"trait_type":"Ocean","value":"', hasOcean ? YES : NO, '"}');
+
+
+
+            return (hasCity, hasRiver, hasMountains, hasOcean, attributes);
 
         }
 

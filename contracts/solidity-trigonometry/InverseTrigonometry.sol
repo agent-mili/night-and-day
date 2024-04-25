@@ -77,6 +77,11 @@ library InverseTrigonometry {
   function arcsin(int256 _x) internal pure returns (int256) {
     int256 DOMAIN_MAX = 1000000000000000000;
     int256 DOMAIN_MIN = -DOMAIN_MAX;
+    if (_x < DOMAIN_MIN) {
+      _x = DOMAIN_MIN;
+    } else if (_x > DOMAIN_MAX) {
+      _x = DOMAIN_MAX;
+    }
     require(_x >= DOMAIN_MIN && _x <= DOMAIN_MAX, 'InverseTrigonometry: DOMAIN');
 
     // arcsin is an odd function, so arcsin(-x) = -arcsin(x), so we can remove

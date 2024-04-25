@@ -114,7 +114,7 @@ uint256 constant TO_DEG = 57295779513224454144;
                 
 
                 string memory maskName = string.concat(asset.name, "-mask");
-                sceneMaskSvg = string.concat(sceneMaskSvg, '<use href="#', maskName, '"filter="url(#makeBlack)" transform="translate( ', x.toString(),',', y.toString(), ') scale(', renderDecimal(int(xScale * int(scale))), ' ' , renderDecimal(int(scale)),')"/>');
+                sceneMaskSvg = string.concat(sceneMaskSvg, '<use href="#', maskName, '" filter="url(#makeBlack)" transform="translate( ', x.toString(),',', y.toString(), ') scale(', renderDecimal(int(xScale * int(scale))), ' ' , renderDecimal(int(scale)),')"/>');
                 }
         }
         }
@@ -283,13 +283,26 @@ uint256 constant TO_DEG = 57295779513224454144;
         string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
 
         string memory night = string.concat(
-            '<rect mask="url(#nightMask', motifTypeString, ')" style="mix-blend-mode:multiply" width="100%" height="100%" fill="#0F3327" opacity="',
+            '<rect mask="url(#nightMask', motifTypeString, ')" style="mix-blend-mode:multiply" width="1080" height="1080" fill="#0F3327" opacity="',
             opacityString,
             '"></rect>'
         );
 
         
         return night;
+    }
+
+    function createStandardAttributes(Motif memory motif, FlowerType flowerType) public pure returns (string memory) {
+        string memory attributes;
+        
+        attributes = string.concat('"attributes": [{"trait_type":"Flower","value":"', flowerType == FlowerType.ROSE ? "Rose" : flowerType == FlowerType.SUNFLOWER ? "Sunflower" : "Gentian", '"}');
+        attributes = string.concat(attributes, ',{"trait_type":"Latitude","value":"', renderDecimal(motif.lat, 6), '"}');
+        attributes = string.concat(attributes, ',{"trait_type":"Longitude","value":"', renderDecimal(motif.lng, 6), '"}');
+        attributes = string.concat(attributes, ',{"trait_type":"Heading","value":"', motif.heading.toStringSigned(), '"}');
+        attributes = string.concat(attributes, ',{"trait_type":"Motif Type","value":"', motif.motifType == MotifType.SIGHT_SEEING ? "Sight Seeing" : motif.motifType == MotifType.BEACH ? "Beach" : motif.motifType == 
+        MotifType.SKYSCRAPER ? "Sky Scraper" : "Landscape", '"}');
+
+        return attributes;
     }
 
 
@@ -455,6 +468,10 @@ uint256 constant TO_DEG = 57295779513224454144;
 
             flowerSvg = replaceFirst(flowerSvg, "<!--azi-->", "0");
             flowerSvg = replaceFirst(flowerSvg, "<!--alt-->", "0");
+
+            if(flowerType == FlowerType.GENTIAN) {
+                  flowerSvg = replaceFirst(flowerSvg, "<!--aziStick-->", "0");
+            }
         } else {
             if (abs(angle) >= 9000) {
                 flowerSvg = string.concat(stick, transformContainer, blossom, front, '</g>');
@@ -744,15 +761,19 @@ uint256 constant TO_DEG = 57295779513224454144;
     return x >= 0 ? x : -x;
 }
 
-function renderDecimal(int256 value) public pure returns (string memory) {
-        int256 integerPart = value / 100;
-        int256 decimalPart = abs(value % 100);
+function renderDecimal(int256 value, uint decimals) public pure returns (string memory) {
+        int256 integerPart = value / int(10 ** decimals);
+        int256 decimalPart = abs(value % int(10**decimals));
 
         return string.concat(
             integerPart.toStringSigned(),
             ".",
             padZeroes(decimalPart.toStringSigned(), 2)
         );
+    }
+
+    function renderDecimal(int256 value) public pure returns (string memory) {
+        return renderDecimal(value, 2);
     }
 
 

@@ -134,8 +134,9 @@ contract NDMotifDataManager {
         motif.lng = genericMotif.lng;
         motif.heading = genericMotif.heading;
         motif.svg = svg;
+        motif.scenes = genericMotifs.getScene(motifType);
 
-        motif.horizon = 310;
+        motif.horizon = int(genericMotifs.getHorizon(motifType));
         motif.motifType = motifType;
         return motif;
 
@@ -147,14 +148,14 @@ contract NDMotifDataManager {
     }
 
     function getSkinColor(uint256 tokenId) public view returns (string memory, string memory) {
-        return genericMotifs.getBeachSkinColor(tokenId - BEACHES_START_INDEX);
+        return genericMotifs.getSkinColor(tokenId - BEACHES_START_INDEX);
     }
 
     function getSkylineType(uint256 tokenId) public view returns (uint) {
         return genericMotifs.getSkylineType(tokenId - SKYSCRAPERS_START_INDEX);
     }
 
-    function isCityCoastel(uint256 tokenId) public view returns (bool) {
+    function isCityCoastel(uint256 tokenId) public view returns (bool, string memory) {
         return genericMotifs.isCityCoastal(tokenId - SKYSCRAPERS_START_INDEX);
     }
 
@@ -166,7 +167,7 @@ contract NDMotifDataManager {
         return genericMotifs.getClimateZoneForLandscape(tokenId - LANDSCAPE_START_INDEX);
     }
 
-    function getLandScapeTraits(uint tokenId) public view returns (bool, bool, bool, bool) {
+    function getLandScapeTraits(uint tokenId) public view returns (bool, bool, bool, bool, string memory) {
         return genericMotifs.getLandscapeTraits(tokenId - LANDSCAPE_START_INDEX);
     }
 

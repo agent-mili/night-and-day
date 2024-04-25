@@ -7,10 +7,18 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
+import "forge-std/console.sol";
+
 import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
-    bytes32 public merkleRoot = 0xd93cc992f7664fad08565ac8e528121f35916c72b1ab662873a344f5e4bfcdc3;
+
+    using ECDSA for bytes32;
+
+    address private signerAddress = 0x09505292D5eae5504cEc5c8BA86e09e83C810AA9;
 
     uint256[] private shuffledTokenIds = [340,
  167,
@@ -513,7 +521,6 @@ contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
  256,
  426];
 
-    mapping(bytes32 => bool) public usedCodes;
     uint256 public reservedSupply = 50;
     uint256 public maxSupply = 450;
     uint public totalSupply = 0;
@@ -524,27 +531,42 @@ contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
 
     }
 
-    function mintWithCode(bytes32[] calldata _merkleProof, string calldata _code) external nonReentrant {
+    function reservedMint(bytes memory signature) external nonReentrant {
+          require(verifyAddressSigner(signature), "SIGNATURE_VALIDATION_FAILED");
         require(totalSupply < maxSupply, "Max supply reached");
         require(reservedSupply > 0, "No reserved supply left");
-
-        bytes32 leaf = keccak256(abi.encodePacked(_code));
-        require(!usedCodes[leaf], "Code already used");
-
-        require(MerkleProof.verify(_merkleProof, merkleRoot, leaf), "Invalid code");
-
-        usedCodes[leaf] = true;
+                 
+          uint randomId = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, totalSupply))) % shuffledTokenIds.length;
+        uint256 tokenId = shuffledTokenIds[randomId];
+        shuffledTokenIds[randomId] = shuffledTokenIds[shuffledTokenIds.length - 1];
+        shuffledTokenIds.pop();
+        totalSupply += 1;
         reservedSupply -= 1;
-         uint256 tokenId = shuffledTokenIds[totalSupply++];
+        console.log(tokenId);
         _safeMint(msg.sender, tokenId);
     }
 
     function mint() external nonReentrant {
         require(totalSupply < maxSupply, "Max supply reached");
       //  require(totalSupply >= reservedSupply, "Reserved supply not exhausted");
-
-        uint256 tokenId = shuffledTokenIds[totalSupply++];
+        uint randomId = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, totalSupply))) % shuffledTokenIds.length;
+        uint256 tokenId = shuffledTokenIds[randomId];
+        shuffledTokenIds[randomId] = shuffledTokenIds[shuffledTokenIds.length - 1];
+        shuffledTokenIds.pop();
+        totalSupply += 1;
+        console.log(tokenId);
         _safeMint(msg.sender, tokenId);
+    }
+
+     function verifyAddressSigner(bytes memory signature) public view returns (bool) {
+        console.logBytes(signature);
+        console.log(msg.sender);
+        bytes32 messageHash = keccak256(abi.encodePacked(msg.sender));
+        console.logBytes32(messageHash);
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        console.logBytes32(ethSignedMessageHash);
+
+        return signerAddress == ethSignedMessageHash.recover( signature);
     }
 
      struct RoyaltyInfo {
