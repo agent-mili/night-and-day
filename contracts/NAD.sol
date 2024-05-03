@@ -118,7 +118,8 @@ contract NAD is ERC721Reservations {
          string memory maskedAssetsSVG;
         (constructedNFT.svg, maskedAssetsSVG) = NDRenderer.renderMainScene(constructedNFT.svg, timestamp, tokenId, motif.scenes, assetInScene, sunrise, sunset);
          constructedNFT.svg = NDRenderer.renderReplacements(constructedNFT.svg, motif.replacements);
-         string memory skySceneSVG = renderAirplanes( timestamp, tokenId, uint(motif.horizon), motif.heading);
+         constructedNFT.svg =  renderBallon(constructedNFT.svg ,timestamp, tokenId);
+         string memory skySceneSVG = renderAirplanes( timestamp, tokenId, uint(motif.horizon));
 
                   // take first second of day and add token id to it
         uint cloudNonce = block.timestamp - (block.timestamp  % 86400) + tokenId;
@@ -184,13 +185,21 @@ contract NAD is ERC721Reservations {
 
     function renderAirplanes(        
         uint timestamp, 
-        uint tokenId, uint horizonInPx, int heading) public pure returns (string memory) {
+        uint tokenId, uint horizonInPx) public pure returns (string memory) {
 
             string memory assetName = "aeroplane";
-            string memory salt = string.concat(tokenId.toString(), heading.toStringSigned());
+            string memory salt = tokenId.toString();
 
             string memory assetsSVG =  NDRenderer.renderMovingAsset(timestamp, salt, assetName, false, 0, horizonInPx, false, 1, 3, 120, 60, 100, 60 );
             return assetsSVG;
+        }
+
+        function renderBallon(string memory svg, uint timestamp, uint tokenId)  public pure returns (string memory) {
+            string memory assetName = "ball";
+            string memory salt = tokenId.toString();
+
+            string memory assetsSVG =  NDRenderer.renderMovingAsset(timestamp, salt, assetName, true, 0, 150, false, 50, 50, 1200, 120 * 60, 50, 30 * 60 );
+            return NDRenderer.replaceFirst(svg, "<!--ball-->", assetsSVG);
         }
 
 

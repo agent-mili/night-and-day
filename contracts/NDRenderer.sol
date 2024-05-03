@@ -176,7 +176,7 @@ uint256 constant TO_DEG = 57295779513224454144;
 
                 uint scaleFac = maxScale - minScale;
                 uint relativeY = (y - minY) * 100 / (maxY - minY);
-                uint scale = horizontUp ? (relativeY + minScale * 100) * maxScale : (100 - relativeY + minScale * 100) * scaleFac;
+                uint scale = horizontUp ? (relativeY + minScale ) * maxScale / 100 : (100 - relativeY + minScale) * scaleFac / 100;
                
                 string memory assetSvg;
                 if (hasRandomColor)

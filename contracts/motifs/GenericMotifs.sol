@@ -73,7 +73,7 @@
 
         function getSkinColor(uint index) public pure returns (string memory, string memory) {
 
-            string[10] memory skinColors = ["#ffcabf", "#ffcc99", "#e6ae76", "#cc8f52", "#bb7f43", "#aa7035", "#925b2d", "#7a4625", "#ffcc73", "#ffcc4d"];
+            string[10] memory skinColors = ["#ffcabf", "#ffcc99", "#e6ae76", "#cc8f52", "#bb7f43", "#966329", "#925b2d", "#7a4625", "#ffcc73", "#ffcc4d"];
             uint skinColorIndex = (index * 3) % 10;
             string memory skinColor = skinColors[skinColorIndex];
             string memory attribute = string.concat(',{"trait_type":"Skin Color","value":"', skinColor, '"}');
