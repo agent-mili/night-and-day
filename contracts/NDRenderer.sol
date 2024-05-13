@@ -169,14 +169,24 @@ uint256 constant TO_DEG = 57295779513224454144;
 
             if (progress >= -30 && progress <= 130) {
                 string memory visibleAssetSalt = string(abi.encodePacked(salt, startTime.toString()));
-                uint y = randomNum(visibleAssetSalt, minY, maxY);
+                uint y = randomNum(visibleAssetSalt, uint(minY), uint(maxY));
                 int direction = int8(randomNum(visibleAssetSalt, 0, 1) == 0 ? -1 : int8(1));
                 uint maxX = 1080;
                 int x = direction == -1 ? int(maxX) * progress / 100 : int(maxX) * (100 - progress) / 100;
 
-                uint scaleFac = maxScale - minScale;
-                uint relativeY = (y - minY) * 100 / (maxY - minY);
-                uint scale = horizontUp ? (relativeY + minScale ) * maxScale / 100 : (100 - relativeY + minScale) * scaleFac / 100;
+                uint rangeY = maxY - minY;
+                uint diffY = y - minY;
+                uint scaleDiff = maxScale - minScale;
+
+
+            
+                uint proportion = diffY * 1e18 / rangeY; 
+                uint scale;
+                if (horizontUp) {
+                    scale = minScale + scaleDiff * proportion / 1e18; 
+                } else {
+                    scale = maxScale - scaleDiff * proportion / 1e18; 
+                }
                
                 string memory assetSvg;
                 if (hasRandomColor)
@@ -622,6 +632,34 @@ uint256 constant TO_DEG = 57295779513224454144;
 
         return (minStartTime, maxStartTime, isTimeFrameValid);
     }
+
+
+        function renderLighthouse(string memory svg, int altitude, uint timestamp) public pure returns ( string memory) {
+
+            if (altitude > 0) {
+                return svg;
+            }
+
+            uint rotationInSeconds = 40;
+            uint progress = timestamp % rotationInSeconds * 100 / rotationInSeconds;
+            uint rotation = progress * 2 * 31415926535897932;
+
+            int xValue = Trigonometry.sin(rotation) * 810;
+
+            int yValue = 10 + Trigonometry.cos(rotation) * 68 + (68 * 1e18);
+
+            string memory xDec = renderDecimal(xValue / 1e16);
+            string memory yDec = renderDecimal(yValue / 1e16);
+
+ 
+
+            string memory lightHouse =  string.concat('<polygon opacity="0.2" fill="#fff" points="' , xDec, ',', yDec, ',0,0,', xDec,',-',yDec, '"/>');
+            return replaceFirst(svg, "<!--light-->", lightHouse);
+
+
+        }
+
+
 
     function generateClouds(int skyHeight, uint nonce) public pure returns (string memory) {
         uint numClouds = randomNum(nonce++, 1, 5);

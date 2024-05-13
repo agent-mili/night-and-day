@@ -49,23 +49,42 @@ describe('SunCalc', function () {
     })
 
 
-    xit ('should return sun rise and set', async function () {
+    it ('should return sun rise and set', async function () {
 
         const [owner, otherAccount] = await ethers.getSigners();
 
         const SunCalc = await ethers.getContractFactory('SunCalc');
         const sunCalc = await SunCalc.deploy();
-        const latitude: BigInt = 51178844n * (10n ** 12n);
-        const longitude: BigInt = -1826323n * (10n ** 12n);
-        for (let i = 0; i < 24; i++) {
+        const latitude: BigInt = 29982406n * (10n ** 12n);
+        const longitude: BigInt = 31132695n * (10n ** 12n);
+      //  for (let i = 0; i < 24; i++) {
         
-            const timestamp = BigInt(1712240240000 + ( i * 60 * 60 * 1000)) * BigInt(1e15);
+        const timestamp = BigInt(1705207020000)  * BigInt(1e15);
 
         const sunRiseSet = await sunCalc.getSunRiseSet(timestamp.toString(), latitude.toString(), longitude.toString());
         console.log(new Date(Number(timestamp / BigInt(1e15))));
+        console.log(sunRiseSet[0] / BigInt(1e18));
+        console.log(sunRiseSet[1] / BigInt(1e18));
         console.log("enclosing sunrise : ", new Date( Number(sunRiseSet[0] / BigInt(1e15)) ) );
         console.log("enclosing sunset : ", new Date( Number(sunRiseSet[1] / BigInt(1e15))) );
-        }
-        //expect(sunRiseSet).to.be.a('array');
+        });
+
+
+        xit ('calculate hour angle', async function () {
+
+            const [owner, otherAccount] = await ethers.getSigners();
+    
+            const SunCalc = await ethers.getContractFactory('SunCalc');
+            const sunCalc = await SunCalc.deploy();
+
+            const phi =  523291702369703000n;// * BigInt(10 ** 3);
+            const dec =  373979721391377030n;
+
+            const hourAngle = await sunCalc.hourAngle(0, phi.toString(), dec.toString());
+            console.log(hourAngle/BigInt(1e12));
+
+            expect(hourAngle).to.be.a('bigint');
+
+          
+            });
     })
-});

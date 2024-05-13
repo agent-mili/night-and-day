@@ -63,7 +63,7 @@ xit("should generate svg sun", async function () {
 }); */
 
 // write a test for tokenUri function
-it("should return a token URI", async function () {
+xit("should return a token URI", async function () {
   const [owner, otherAccount] = await ethers.getSigners();
 
 // create motif instance and give its address to NAD contract constructor

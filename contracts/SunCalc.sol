@@ -5,6 +5,8 @@ import { sqrt} from "@prb/math/src/Common.sol";
 import "./solidity-trigonometry/Trigonometry.sol";
 import "./solidity-trigonometry/InverseTrigonometry.sol";
 
+import "forge-std/console.sol";
+
 
 
 library SunCalc {
@@ -53,32 +55,68 @@ library SunCalc {
 
      function solarTransitJ(uint256 ds, uint256 M, uint256 L) public pure returns (uint256) {
         uint256 term1 = uint(int(J2000) + int(ds) + (53*1e14 * Trigonometry.sin(M) / 1e18 )); // 0.0053 * 1e18
-        int256 term2 = 6900000000 * Trigonometry.sin(2 * L) / 1e18;
+        int256 term2 = 69*1e14 * Trigonometry.sin(2 * L) / 1e18;
 
         return uint(int(term1) - term2);
     }
 
-    function hourAngle(uint256 h, uint256 phi, uint256 d) public pure returns (uint) {
+    function hourAngle(uint256 h, int256 phi, int256 d) public view returns (uint) {
+
+        console.log("h");
+        console.logUint(h);
+        console.log("phi");
+        console.logInt(phi);
+        console.log("d");
+        console.logInt(d);
+
         int256 sinH = Trigonometry.sin(h);
+        console.log("sinH");
+        console.logInt(sinH);
         int256 sinPhi = Trigonometry.sin(phi);
+        console.log("sinPhi");
+        console.logInt(sinPhi);
         int256 sinD = Trigonometry.sin(d);
+        console.log("sinD");
+        console.logInt(sinD);
         int256 cosPhi = Trigonometry.cos(phi);
+        console.log("cosPhi");
+        console.logInt(cosPhi);
         int256 cosD = Trigonometry.cos(d);
+        console.log("cosD");
+        console.logInt(cosD);
 
         // Berechnung des Stundenwinkels
-        int256 numerator = sinH - sinPhi * sinD / 1e18;
+        int256 numerator = sinH - sinPhi * sinD  / 1e18;
+        console.log("numerator");
+        console.logInt(numerator);
         int256 denominator = cosPhi * cosD / 1e18;
+        console.log("denominator");
+        console.logInt(denominator);
 
-        int256 angle = int(PI_E) / 2 -  InverseTrigonometry.arcsin(numerator * 1e18 / denominator);
+        int256 angle = InverseTrigonometry.arcsin(1e18 * numerator / denominator);
+        console.log("angle before");
+        console.logInt(angle);
+        angle = int(PI_E) / 2 - angle;
+        console.log("angle");
+        console.logInt(angle);
 
         return uint(angle);
     }
 
 
-    function getSetJ(uint256 h, int256 lw, uint256 phi, uint256 dec, uint256 n, uint256 M, uint256 L) internal pure returns (uint256) {
+    function getSetJ(uint256 h, int256 lw, int256 phi, int256 dec, uint256 n, uint256 M, uint256 L) internal view returns (uint256) {
         uint256 w = hourAngle(h, phi, dec);
+        console.log("w");
+        console.logUint(w);
+
         uint256 a = approxTransit(w, lw, n);
-        return solarTransitJ(a, M, L);
+        console.log("a");
+        console.logUint(a);
+
+        uint result =  solarTransitJ(a, M, L);
+        console.log("result");
+        console.logUint(result);
+        return result;
     }
 
 
@@ -224,30 +262,62 @@ library SunCalc {
      //always returns the sunrise/sunset time enclosing the given date 
      //e.G. in the night we will have a past sunset and a future sunrise
      // in the day we have a past sunrise and a future sunset
-     function getSunRiseSet(uint256 date, int256 lat, int256 lng) public pure returns (uint256 sunrise, uint256 sunset) {
+     function getSunRiseSet(uint256 date, int256 lat, int256 lng) public view returns (uint256, uint256) {
+
+
+        console.log("date");
+        console.logUint(date);
+        console.log("lat");
+        console.logInt(lat);
+        console.log("lng");
+        console.logInt(lng);
+
+
         
        
         int lw = lng * int(TO_RAD)/ 1e18 * -1;
+        console.log("lw");
+        console.logInt(lw);
 
-        uint phi  = uint(lat * int(TO_RAD) / 1e18 + int(PI2));
+        int phi  = (lat * int(TO_RAD) / 1e18);
+        console.log("phi");
+        console.logInt(phi);
 
         uint256 d = toDays(date); 
+        console.log("d");
+        console.logUint(d);
 
         int256 n = julianCycle(d, lw);
+        console.log("n");
+        console.logInt(n);
 
         uint256 ds = approxTransit(0, lw, uint(n));
+        console.log("ds");
+        console.logUint(ds);
 
         uint256 M = solarMeanAnomaly(ds);
+        console.log("M");
+        console.logUint(M);
         int256 L = eclipticLongitude(M);
+        console.log("L");
+        console.logInt(L);
         int256 dec = declination(L, 0);
+        console.log("dec");
+        console.logInt(dec);
 
         uint256 Jnoon = solarTransitJ(ds, M, uint(L));
+        console.log("Jnoon");
+        console.logUint(Jnoon);
 
-        uint256 Jset = getSetJ(0, lw, uint(phi), uint(dec), uint(n), M, uint(L));
+        uint256 Jset = getSetJ(0, lw, phi, dec, uint(n), M, uint(L));
+        console.log("Jset");
+        console.logUint(Jset);
         uint256 Jrise = Jnoon - (Jset - Jnoon);
+        console.log("Jrise");
+        console.logUint(Jrise);
 
-        sunrise = fromJulian(Jrise);
-        sunset = fromJulian(Jset);
+        uint sunrise = fromJulian(Jrise);
+        uint sunset = fromJulian(Jset);
 
 
 
@@ -261,13 +331,18 @@ library SunCalc {
         L = eclipticLongitude(M);
         dec = declination(L, 0);
         Jnoon = solarTransitJ(ds, M, uint(L));
-        Jset = getSetJ(0, lw, uint(phi), uint(dec), uint(n), M, uint(L));
+        Jset = getSetJ(0, lw, phi, dec, uint(n), M, uint(L));
         if (sunrise > date) {
             sunset = fromJulian(Jset);
         } else if (sunset < date) {
             Jrise = Jnoon - (Jset - Jnoon);
             sunrise = fromJulian(Jrise);
         }
+
+        console.log("sunrise");
+        console.logUint(sunrise/ 1e10);
+        console.log("sunset");
+        console.logUint(sunset/ 1e10);
 
         return (sunrise, sunset);
     }
