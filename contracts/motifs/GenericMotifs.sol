@@ -47,8 +47,13 @@
                     ], 300);
                     }
             } else if (motifType == MotifType.LANDSCAPE) {
-                sceneInMotif = new SceneInMotif[](0);
-                
+                sceneInMotif = new SceneInMotif[](1);
+                {
+                        uint8[] memory assets = new uint8[](1);
+                        assets[0] = 2;
+                        sceneInMotif[0] = SceneInMotif("sc1", assets, [int(861), int(954), int(211), int(40)
+                    ], 300);
+                    }
             }
             return sceneInMotif;
 

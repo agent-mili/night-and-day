@@ -72,7 +72,7 @@ uint256 constant TO_DEG = 57295779513224454144;
             SceneInMotif memory scene = scenes[i];
   
 
-            (string memory sceneSvg, string memory sceneMaskSvg) = renderSceneAssets(scene.assets,assetsInScene, timestamp, tokenID, scene.area, scene.scale, sunrise, sunset);
+            (string memory sceneSvg, string memory sceneMaskSvg) = renderSceneAssets(scene,assetsInScene, timestamp, tokenID, sunrise, sunset);
    
             svg = replaceFirst(svg,string.concat("<!--", scene.placeHolder, "-->" ), sceneSvg);
             nightMaskSvg = string.concat(nightMaskSvg, sceneMaskSvg);
@@ -81,19 +81,19 @@ uint256 constant TO_DEG = 57295779513224454144;
         return (svg, nightMaskSvg);
     }
 
-    function renderSceneAssets(uint8[] memory assetIds,  AssetInScene[] memory assets, uint256 timestamp, uint256 tokenID, int256[4] memory area,uint scale,uint sunrise, uint sunset) public pure returns (string memory sceneSvg, string memory sceneMaskSvg) {
+    function renderSceneAssets(SceneInMotif memory scene,  AssetInScene[] memory assets, uint256 timestamp, uint256 tokenID ,uint sunrise, uint sunset) public pure returns (string memory sceneSvg, string memory sceneMaskSvg) {
          
         SceneElement [] memory elements = new SceneElement[](assets.length);
         sceneMaskSvg = "";
 
             
-        for (uint i = 0; i < assetIds.length; i++) {
+        for (uint i = 0; i < scene.assets.length; i++) {
             uint allAssetIndex = 0;
-            uint8 assetId = assetIds[i];
+            uint8 assetId = scene.assets[i];
             AssetInScene memory asset = assets[assetId];
 
 
-            string memory assetSalt = string.concat(tokenID.toString(), asset.name);
+            string memory assetSalt = string.concat(tokenID.toString(), asset.name, scene.placeHolder);
             uint[] memory visibleStartTimes = computeStarttime(timestamp, asset.checkInterval , asset.minDuration, asset.maxDuration, asset.possibleOffset, asset.probability, assetSalt, asset.dayTime , sunrise, sunset);
 
             for (uint i2 = 0; i2 < visibleStartTimes.length; i2++) {
@@ -102,10 +102,10 @@ uint256 constant TO_DEG = 57295779513224454144;
                 string memory assetSvg = "";
                 {
                 string memory posSalt = string(abi.encodePacked(startTime.toString(), asset.name));
-                uint256 y = uint(area[1]) + randomNum(posSalt, 0, uint(area[3]));
-                uint256 x = uint(area[0]) + randomNum(posSalt, 0, uint(area[2]));
+                uint256 y = uint(scene.area[1]) + randomNum(posSalt, 0, uint(scene.area[3]));
+                uint256 x = uint(scene.area[0]) + randomNum(posSalt, 0, uint(scene.area[2]));
                 int xScale = randomNum(posSalt, 0,1)  == 0 ? int(1): int(-1);
-                assetSvg = string.concat('<use fill="<!--rdColor-->" href="#',asset.name, '" transform="translate(', x.toString(), ',', y.toString(), ') scale(', renderDecimal(int(xScale *  int(scale))), ' '  , renderDecimal(int(scale)), ')"/>');
+                assetSvg = string.concat('<use fill="<!--rdColor-->" href="#',asset.name, '" transform="translate(', x.toString(), ',', y.toString(), ') scale(', renderDecimal(int(xScale *  int(scene.scale))), ' '  , renderDecimal(int(scene.scale)), ')"/>');
 
                 assetSvg = setRandomColor(assetSvg, posSalt);
 
@@ -114,7 +114,7 @@ uint256 constant TO_DEG = 57295779513224454144;
                 
 
                 string memory maskName = string.concat(asset.name, "-mask");
-                sceneMaskSvg = string.concat(sceneMaskSvg, '<use href="#', maskName, '" filter="url(#makeBlack)" transform="translate( ', x.toString(),',', y.toString(), ') scale(', renderDecimal(int(xScale * int(scale))), ' ' , renderDecimal(int(scale)),')"/>');
+                sceneMaskSvg = string.concat(sceneMaskSvg, '<use href="#', maskName, '" filter="url(#makeBlack)" transform="translate( ', x.toString(),',', y.toString(), ') scale(', renderDecimal(int(xScale * int(scene.scale))), ' ' , renderDecimal(int(scene.scale)),')"/>');
                 }
         }
         }
@@ -177,7 +177,6 @@ uint256 constant TO_DEG = 57295779513224454144;
                 uint rangeY = maxY - minY;
                 uint diffY = y - minY;
                 uint scaleDiff = maxScale - minScale;
-
 
             
                 uint proportion = diffY * 1e18 / rangeY; 
@@ -800,8 +799,16 @@ uint256 constant TO_DEG = 57295779513224454144;
 }
 
 function renderDecimal(int256 value, uint decimals) public pure returns (string memory) {
+        bool isNegative = value < 0;
         int256 integerPart = value / int(10 ** decimals);
         int256 decimalPart = abs(value % int(10**decimals));
+
+        if (isNegative && integerPart == 0) {
+            return string.concat(
+                "-0.",
+                padZeroes(decimalPart.toStringSigned(), 2)
+            );
+        }
 
         return string.concat(
             integerPart.toStringSigned(),

@@ -94,9 +94,8 @@ contract NAD is ERC721Reservations {
 
         {
          (sunMoon.azimuth, sunMoon.altitude) = SunCalc.getPosition(motif.lat * 1e12, motif.lng * 1e12, timestamp * 1e18);
-         if (tokenId != 3) {
-                (sunMoon.sunrise, sunMoon.sunset) = SunCalc.getSunRiseSet(timestamp * 1e18, motif.lat * 1e12, motif.lng * 1e12);
-         } 
+         (sunMoon.sunrise, sunMoon.sunset) = SunCalc.getSunRiseSet(timestamp * 1e18, motif.lat * 1e12, motif.lng * 1e12);
+       
 
 
         
@@ -134,8 +133,8 @@ contract NAD is ERC721Reservations {
         
         (constructedNFT.svg, maskedAssetsSVG) = NDRenderer.renderMainScene(constructedNFT.svg, timestamp, tokenId, motif.scenes, assetInScene, sunMoon.sunrise, sunMoon.sunset);
          constructedNFT.svg = NDRenderer.renderReplacements(constructedNFT.svg, motif.replacements);
-         constructedNFT.svg =  renderBallon(constructedNFT.svg ,timestamp, tokenId);
-         constructedNFT.svg = renderWaterScene(constructedNFT.svg, timestamp, tokenId, uint(motif.horizon));
+         constructedNFT.svg = renderBallon(constructedNFT.svg ,timestamp, tokenId);
+         constructedNFT.svg = renderWaterScene(constructedNFT.svg, timestamp, tokenId, motif.motifType);
         
          
          string memory skySceneSVG = renderAirplanes( timestamp, tokenId, uint(motif.horizon));
@@ -183,7 +182,11 @@ contract NAD is ERC721Reservations {
         '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1080 1080">'
         '<filter id="makeBlack">'
         '<feColorMatrix type="matrix"'
-        ' values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>';
+        ' values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>'
+        '<filter id="silc" x="0" y="0" width="200%" height="200%">'
+        '<feFlood flood-color="#F9B233" result="flood" />'
+        '<feComposite in="flood" in2="SourceAlpha" operator="in"/>'
+        '</filter>';
 
 
 
@@ -224,16 +227,21 @@ contract NAD is ERC721Reservations {
         }
 
 
-        function renderWaterScene(string memory svg, uint timestamp, uint tokenId, uint horizonInPx) public pure returns (string memory) {
+        function renderWaterScene(string memory svg, uint timestamp, uint tokenId,MotifType motifType) public pure returns (string memory) {
             
             
             string memory salt = tokenId.toString();
+            uint scale = motifType == MotifType.LANDSCAPE ||  motifType == MotifType.SKYSCRAPER ? 70 : 100;
 
-            string memory tankerSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "tanker", true,  horizonInPx, horizonInPx + 30, true, 50, 100, 120, 60, 100, 60 );
-            string memory fisherSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "fisher", true, horizonInPx, horizonInPx + 30, true, 50, 100, 120, 60, 100, 60 );
-            string memory yachtSVG =   NDRenderer.renderMovingAsset(timestamp, salt, "yacht", true,  horizonInPx, horizonInPx + 30, true, 50, 100, 120, 60, 100, 60 );
 
-            string memory assetsSVG = string.concat(tankerSVG, fisherSVG, yachtSVG);
+
+
+            //string memory tankerSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "tanker", true,  0, 5, true, 50, scale, scale, 60, 100, 60 );
+            string memory cruiserSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "cruise", false,  0, 5, true, scale, scale, 60, 60, 100, 60 );
+            string memory fisherSVG =  NDRenderer.renderMovingAsset(timestamp, salt, "fisher", false, 0, 5, true, scale, scale,60, 60, 100, 60 );
+            string memory yachtSVG =   NDRenderer.renderMovingAsset(timestamp, salt, "yacht", true,  0, 5, true, scale, scale,60, 60, 100, 60 );
+
+            string memory assetsSVG = string.concat(cruiserSVG, fisherSVG, yachtSVG);
 
             return NDRenderer.replaceFirst(svg, "<!--waterscene-->", assetsSVG);
 
@@ -279,6 +287,8 @@ contract NAD is ERC721Reservations {
             nft.attributes = string.concat(nft.attributes, attribute);
 
              nft.svg = NDRenderer.replaceFirst( nft.svg, "<!--coastal-->", isCityCoastel ? "hidden" : "visible");
+
+              nft.svg = NDRenderer.replaceFirst( nft.svg, "<!--water-->", isCityCoastel ? "visible" : "hidden");
 
          
             //RENDER CHART
