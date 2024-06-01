@@ -41,7 +41,8 @@ networks: {
     forking: {
       //infura 
       url: "https://mainnet.infura.io/v3/cd6ed9e0e4c94f8cb914a030ddd9cdd7",
-      blockNumber:19482130
+      blockNumber:19482130,
+
     },
   },
 },

@@ -84,6 +84,20 @@ struct Motif {
     }
 
 
+struct SVGData {
+
+        string sunSVG;
+        string skyColor;
+        string moonSVG;
+        string nightSVG;
+        string waterColor;
+        string cloudsSVG;
+        string skySceneSVG;
+        string flowerSVG;
+
+     }
+
+
 interface IMotifData {
     
     // function that returns a motif struct

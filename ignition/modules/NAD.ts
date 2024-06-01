@@ -4,8 +4,16 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 export default buildModule("NaDDeployment", (m) => {
     // Deploye Bibliotheken
     const sunCalc = m.contract("SunCalc", []);
-    const ndRenderer = m.contract("NDRenderer", []);
+    const ndUtils = m.contract("NDUtils", []);
     const ndDecoder = m.contract("NDDecoder", []);
+
+    const ndRenderer = m.contract("NDRenderer", [], {
+      libraries: {
+        NDUtils: ndUtils,
+      },
+    
+    });
+
   
     // Deploye den GenericMotifs Contract
     const genericMotif = m.contract("GenericMotifs", []);
@@ -26,7 +34,7 @@ export default buildModule("NaDDeployment", (m) => {
     ], {
       libraries: {
         NDDecoder: ndDecoder,
-        NDRenderer: ndRenderer,
+        NDUtils: ndUtils,
       },
       after:[  genericMotif,
         genericMotifSVG,
@@ -39,6 +47,7 @@ export default buildModule("NaDDeployment", (m) => {
     const nandd = m.contract("NAD", [ndMotifDataManager], {
       libraries: {
         SunCalc: sunCalc,
+        NDUtils: ndUtils,
         NDRenderer: ndRenderer,
       },
       after:[ndMotifDataManager, genericMotifSVG, motif0, motif1, motif2]
@@ -47,6 +56,7 @@ export default buildModule("NaDDeployment", (m) => {
     return {
       sunCalc,
       ndRenderer,
+      ndUtils,
       ndDecoder,
       genericMotif,
       motif0,

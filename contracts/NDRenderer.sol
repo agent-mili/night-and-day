@@ -8,7 +8,9 @@ import "./BasicMotif.sol";
 
 import "./SunCalc.sol";
 
+import "./NDUtils.sol";
 
+import "forge-std/console.sol";
 
 
 library NDRenderer {
@@ -36,32 +38,6 @@ uint256 constant TO_DEG = 57295779513224454144;
     }
 
 
-    function renderReplacements(string memory svg, Replacement[] memory replacements) public pure returns (string memory) {
-        for (uint i = 0; i < replacements.length; i++) {
-        Replacement memory replacement = replacements[i];
-        string memory replacementSvg;
-        if (replacement.tag == ObjectType.USE) {
-            uint iterationStep = (replacement.dataType == RenderDataType.POSITIONS) ? 2 : 
-                                  (replacement.dataType == RenderDataType.POSISTIONSANDSCALE) ? 3 : 4;
-
-            for (uint j = 0; j < replacement.data.length; j += iterationStep) {
-                int x = replacement.data[j];
-                int y = replacement.data[j + 1];
-                string memory scaleX = replacement.dataType == RenderDataType.POSITIONS ? "1" : renderDecimal(int(replacement.data[j + 2]));
-                string memory scaleY = replacement.dataType == RenderDataType.POSITIONSANDTWOSCALES ? renderDecimal(int(replacement.data[j + 3])) : scaleX;
-
-                replacementSvg = string.concat(replacementSvg, '<use href="#',
-                        replacement.ref,'" transform="translate(',
-                        x.toStringSigned(), ', ', y.toStringSigned(), ') scale(', scaleX, ', ', scaleY, ')" />');
-                
-            }
-        }
-
-        svg = replaceFirst(svg, string.concat("<!--", replacement.placeholder, "-->"), replacementSvg);
-    }
-    return svg;
-}
-
 
 
 
@@ -74,7 +50,7 @@ uint256 constant TO_DEG = 57295779513224454144;
 
             (string memory sceneSvg, string memory sceneMaskSvg) = renderSceneAssets(scene,assetsInScene, timestamp, tokenID, sunrise, sunset);
    
-            svg = replaceFirst(svg,string.concat("<!--", scene.placeHolder, "-->" ), sceneSvg);
+            svg = NDUtils.replaceFirst(svg,string.concat("$", scene.placeHolder ), sceneSvg);
             nightMaskSvg = string.concat(nightMaskSvg, sceneMaskSvg);
         }
 
@@ -84,52 +60,47 @@ uint256 constant TO_DEG = 57295779513224454144;
     function renderSceneAssets(SceneInMotif memory scene,  AssetInScene[] memory assets, uint256 timestamp, uint256 tokenID ,uint sunrise, uint sunset) public pure returns (string memory sceneSvg, string memory sceneMaskSvg) {
          
         SceneElement [] memory elements = new SceneElement[](assets.length);
-        sceneMaskSvg = "";
 
             
+        
         for (uint i = 0; i < scene.assets.length; i++) {
             uint allAssetIndex = 0;
             uint8 assetId = scene.assets[i];
             AssetInScene memory asset = assets[assetId];
 
-
+            {
             string memory assetSalt = string.concat(tokenID.toString(), asset.name, scene.placeHolder);
-            uint[] memory visibleStartTimes = computeStarttime(timestamp, asset.checkInterval , asset.minDuration, asset.maxDuration, asset.possibleOffset, asset.probability, assetSalt, asset.dayTime , sunrise, sunset);
+            uint[] memory visibleStartTimes = computeStarttime(timestamp, asset, assetSalt , sunrise, sunset, false);
 
             for (uint i2 = 0; i2 < visibleStartTimes.length; i2++) {
+                {
 
                 uint startTime = visibleStartTimes[i2];
-                string memory assetSvg = "";
-                {
+                
                 string memory posSalt = string(abi.encodePacked(startTime.toString(), asset.name));
-                uint256 y = uint(scene.area[1]) + randomNum(posSalt, 0, uint(scene.area[3]));
-                uint256 x = uint(scene.area[0]) + randomNum(posSalt, 0, uint(scene.area[2]));
-                int xScale = randomNum(posSalt, 0,1)  == 0 ? int(1): int(-1);
-                assetSvg = string.concat('<use fill="<!--rdColor-->" href="#',asset.name, '" transform="translate(', x.toString(), ',', y.toString(), ') scale(', renderDecimal(int(xScale *  int(scene.scale))), ' '  , renderDecimal(int(scene.scale)), ')"/>');
+                uint256 y = uint(scene.area[1]) + NDUtils.randomNum(posSalt, 0, uint(scene.area[3]));
+                uint256 x = uint(scene.area[0]) + NDUtils.randomNum(posSalt, 0, uint(scene.area[2]));
+                int xScale = NDUtils.randomNum(posSalt, 0,1)  == 0 ? int(1): int(-1);
+                string memory assetSvg = string.concat('<use fill="<!--rdColor-->" href="#',asset.name, '" transform="translate(', x.toString(), ',', y.toString(), ') scale(', NDUtils.renderDecimal(int(xScale *  int(scene.scale))), ' '  , NDUtils.renderDecimal(int(scene.scale)), ')"/>');
 
-                assetSvg = setRandomColor(assetSvg, posSalt);
+                assetSvg = NDUtils.setRandomColor(assetSvg, posSalt);
 
                 elements[allAssetIndex] = SceneElement(y, assetSvg);
                 allAssetIndex++;
                 
 
                 string memory maskName = string.concat(asset.name, "-mask");
-                sceneMaskSvg = string.concat(sceneMaskSvg, '<use href="#', maskName, '" filter="url(#makeBlack)" transform="translate( ', x.toString(),',', y.toString(), ') scale(', renderDecimal(int(xScale * int(scene.scale))), ' ' , renderDecimal(int(scene.scale)),')"/>');
+                sceneMaskSvg = string.concat(sceneMaskSvg, '<use href="#', maskName, '" filter="url(#makeBlack)" transform="translate( ', x.toString(),',', y.toString(), ') scale(', NDUtils.renderDecimal(int(xScale * int(scene.scale))), ' ' , NDUtils.renderDecimal(int(scene.scale)),')"/>');
                 }
+                
         }
+        
+  
         }
 
-         uint n = elements.length;
-        for (uint i = 0; i < n; i++) {
-            for (uint j = 0; j < n - i - 1; j++) {
-                if (elements[j].y > elements[j + 1].y) {
-                    // Elemente tauschen
-                    SceneElement memory temp = elements[j];
-                    elements[j] = elements[j + 1];
-                    elements[j + 1] = temp;
-                }
-            }
+        elements = sortElements(elements);
         }
+
 
        
 
@@ -139,6 +110,23 @@ uint256 constant TO_DEG = 57295779513224454144;
 
 
         return (sceneSvg, sceneMaskSvg);
+    }
+
+    function sortElements( SceneElement [] memory elements ) public pure returns (SceneElement [] memory){
+
+            uint n = elements.length;
+              for (uint i = 0; i < n; i++) {
+            for (uint j = 0; j < n - i - 1; j++) {
+                if (elements[j].y > elements[j + 1].y) {
+                    // Elemente tauschen
+                    SceneElement memory temp = elements[j];
+                    elements[j] = elements[j + 1];
+                    elements[j + 1] = temp;
+                }
+            }
+        }
+        return elements;
+
     }
 
     function renderMovingAsset(
@@ -155,9 +143,10 @@ uint256 constant TO_DEG = 57295779513224454144;
         uint checkInterval, 
         uint appearanceProbability, 
         uint possibleOffset
-    ) public pure returns (string memory) {
+    ) public view returns (string memory) {
         string memory assetSalt = string(abi.encodePacked(salt, assetName));
-        uint[] memory visibleStartTimes = computeStarttime(timestamp, checkInterval, duration, duration, possibleOffset, appearanceProbability, assetSalt, DAYTIME.NIGHT_AND_DAY , 0, 0);
+        AssetInScene memory assetInScene = AssetInScene(assetName, duration, duration, checkInterval, possibleOffset, appearanceProbability, DAYTIME.NIGHT_AND_DAY);
+        uint[] memory visibleStartTimes = computeStarttime(timestamp, assetInScene, assetSalt , 0, 0, true);
 
         string memory assets;
         for (uint i = 0; i < visibleStartTimes.length; i++) {
@@ -165,12 +154,11 @@ uint256 constant TO_DEG = 57295779513224454144;
 
             int progress = int(timestamp - startTime) * 100 / int(duration);
 
-       
 
             if (progress >= -30 && progress <= 130) {
                 string memory visibleAssetSalt = string(abi.encodePacked(salt, startTime.toString()));
-                uint y = randomNum(visibleAssetSalt, uint(minY), uint(maxY));
-                int direction = int8(randomNum(visibleAssetSalt, 0, 1) == 0 ? -1 : int8(1));
+                uint y = NDUtils.randomNum(visibleAssetSalt, uint(minY), uint(maxY));
+                int direction = int8(NDUtils.randomNum(visibleAssetSalt, 0, 1) == 0 ? -1 : int8(1));
                 uint maxX = 1080;
                 int x = direction == -1 ? int(maxX) * progress / 100 : int(maxX) * (100 - progress) / 100;
 
@@ -190,11 +178,13 @@ uint256 constant TO_DEG = 57295779513224454144;
                 string memory assetSvg;
                 if (hasRandomColor)
                 {
-                    assetSvg = string.concat('<use href="#', assetName ,'" fill="<!--rdColor-->" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', renderDecimal(int(int(scale) * direction)) , ' ', renderDecimal(int(scale)), ') "/>');
-                    assetSvg = setRandomColor(assetSvg, visibleAssetSalt);
+                    assetSvg = string.concat('<use href="#', assetName ,'" fill="<!--rdColor-->" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', NDUtils.renderDecimal(int(int(scale) * direction)) , ' ', NDUtils.renderDecimal(int(scale)), ') "/>');
+                    assetSvg = NDUtils.setRandomColor(assetSvg, visibleAssetSalt);
                 } else {
-                    assetSvg = string.concat('<use href="#', assetName ,'" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', renderDecimal(int(int(scale) * direction)) , ' ', renderDecimal(int(scale)), ') "/>');
+                    assetSvg = string.concat('<use href="#', assetName ,'" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', NDUtils.renderDecimal(int(int(scale) * direction)) , ' ', NDUtils.renderDecimal(int(scale)), ') "/>');
                 }
+
+                console.log(assetSvg);
 
                 assets = string.concat(assets, assetSvg);
             }
@@ -218,11 +208,11 @@ uint256 constant TO_DEG = 57295779513224454144;
                 y = y / 1e2;
 
                 string memory sun =  string.concat(
-                "<g> <circle cx='", renderDecimal(x), 
-                    "' cy='", renderDecimal(y), 
+                "<g> <circle cx='", NDUtils.renderDecimal(x), 
+                    "' cy='", NDUtils.renderDecimal(y), 
                     "' r='58' fill='#fff' /> <circle cx='", 
-                   renderDecimal(x), "' cy='", 
-                    renderDecimal(y), 
+                   NDUtils.renderDecimal(x), "' cy='", 
+                    NDUtils.renderDecimal(y), 
                     "' r='95' fill='#fff' opacity='0.26' /></g>"
                 );
 
@@ -259,10 +249,10 @@ uint256 constant TO_DEG = 57295779513224454144;
                 terminatorRadius = terminatorRadius / 1e2;
                 zenitMoonangle = zenitMoonangle / 1e2;
                 string memory motifTypestring = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
-                string memory moon = string.concat('<g mask="url(#moonMask', motifTypestring ,')"><path transform="rotate(', renderDecimal(zenitMoonangle), ' ', renderDecimal(x + moonRadius), ' ', 
-                renderDecimal(y), ')" stroke="white" shapeRendering="geometricPrecision" fill="white" d="M ', renderDecimal(x), ' ', renderDecimal(y), ' a ',
-                renderDecimal(moonRadius), ' ', renderDecimal(moonRadius), ' 0 0 1 ', renderDecimal(moonRadius * 2), ' 0 a ', renderDecimal(moonRadius), ' ',
-                renderDecimal(terminatorRadius), ' 0 ', isCrescent ? '1' : '0', ' ', isGibbos ? '1' : '0', ' ', renderDecimal(-moonRadius * 2), ' 0 z"></path></g>');
+                string memory moon = string.concat('<g mask="url(#moonMask', motifTypestring ,')"><path transform="rotate(', NDUtils.renderDecimal(zenitMoonangle), ' ', NDUtils.renderDecimal(x + moonRadius), ' ', 
+                NDUtils.renderDecimal(y), ')" stroke="white" shapeRendering="geometricPrecision" fill="white" d="M ', NDUtils.renderDecimal(x), ' ', NDUtils.renderDecimal(y), ' a ',
+                NDUtils.renderDecimal(moonRadius), ' ', NDUtils.renderDecimal(moonRadius), ' 0 0 1 ', NDUtils.renderDecimal(moonRadius * 2), ' 0 a ', NDUtils.renderDecimal(moonRadius), ' ',
+                NDUtils.renderDecimal(terminatorRadius), ' 0 ', isCrescent ? '1' : '0', ' ', isGibbos ? '1' : '0', ' ', NDUtils.renderDecimal(-moonRadius * 2), ' 0 z"></path></g>');
 
                 return moon;
 
@@ -281,13 +271,13 @@ uint256 constant TO_DEG = 57295779513224454144;
         if (altitude < altitudeThresholdForFullNight) {
             opacity = 100; 
         } else if (altitude < 0 && altitude > altitudeThresholdForFullNight) {
-            opacity =  uint( abs(altitude) / opacityFactor );
+            opacity =  uint( NDUtils.abs(altitude) / opacityFactor );
         } else {
             opacity = 0; 
         }
 
        
-        string memory opacityString = renderDecimal(int256(opacity));
+        string memory opacityString = NDUtils.renderDecimal(int256(opacity));
 
         string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
 
@@ -301,100 +291,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         return night;
     }
 
-    function createStandardAttributes(Motif memory motif, FlowerType flowerType) public pure returns (string memory) {
-        string memory attributes;
-        
-        attributes = string.concat('"attributes": [{"trait_type":"Flower","value":"', flowerType == FlowerType.ROSE ? "Rose" : flowerType == FlowerType.SUNFLOWER ? "Sunflower" : "Gentian", '"}');
-        attributes = string.concat(attributes, ',{"trait_type":"Latitude","value":"', renderDecimal(motif.lat, 6), '"}');
-        attributes = string.concat(attributes, ',{"trait_type":"Longitude","value":"', renderDecimal(motif.lng, 6), '"}');
-        attributes = string.concat(attributes, ',{"trait_type":"Heading","value":"', motif.heading.toStringSigned(), '"}');
-        attributes = string.concat(attributes, ',{"trait_type":"Motif Type","value":"', motif.motifType == MotifType.SIGHT_SEEING ? "Sight Seeing" : motif.motifType == MotifType.BEACH ? "Beach" : motif.motifType == 
-        MotifType.SKYSCRAPER ? "Sky Scraper" : "Landscape", '"}');
 
-        return attributes;
-    }
-
-
-
-
-     function randomNum(string memory nonce, uint256 min, uint256 max) public pure returns (uint) {
-        require(min <= max, "min>max");
-        uint randomValue = uint(keccak256(abi.encodePacked( nonce)));
-        uint result =  min + (randomValue % (max - min + 1));
-
-        return result;
-    }
-
-    function randomNum(uint256 nonce, uint256 min, uint256 max) public pure returns (uint) {
-        return randomNum(nonce.toString(), min, max);
-    }
-
-     function setUseTags(string memory svgTemplate, string memory ref, int16[] memory positions, bool hasScale, string memory placeholder)
-        public
-        pure
-        returns (string memory)
-    {
-        string memory useTags = "";
-        uint256 iterationStep = hasScale ? 3 : 2;
-
-        for (uint256 i = 0; i < positions.length; i += iterationStep) {
-            string memory x = positions[i].toStringSigned();
-            string memory y = positions[i + 1].toStringSigned();
-            string memory scale = hasScale ? positions[i + 2].toStringSigned() : "1";
-            
-            useTags = string.concat(
-                useTags,
-                '<use href="#', ref, '" transform="translate(', x, ', ', y, ') scale(', scale, ')" />'
-            );
-        }
-
-        return replaceFirst(svgTemplate, string.concat("<!--", placeholder, "-->"), useTags);
-    } 
-
-
-    // is used for flowers and few plants
-    function setUseRotations(string memory svg, string memory ref, int[] memory rotations, int16[2] memory rotationAnchor) public pure returns (string memory) {
-        string memory useTags = "";
-
-        for (uint256 i = 0; i < rotations.length; i++) {
-            useTags = string.concat(
-                useTags,
-                '<use href="#',
-               ref,
-                '" transform="rotate(',
-                int256(rotations[i]).toStringSigned(),
-                ' ',
-                int256(rotationAnchor[0]).toStringSigned(),
-                ' ',
-                int256(rotationAnchor[1]).toStringSigned(),
-                ')"/>'
-            );
-        }
-
-        return replaceFirst(svg, string.concat('<!--', ref, '-->'), useTags);
-    }
-
-
-
-    function setRandomColor(string memory svg, string memory salt) public pure returns (string memory) {
-
-
-        uint256 rdIndex = randomNum(salt, 0,  16);
-        string memory rdColor = getColorByIndex(rdIndex);
-        return replaceFirst(svg, "<!--rdColor-->", rdColor);
-    }
-
-     function getColorByIndex(uint256 index) internal pure returns (string memory) {
-        string[17] memory rdColors = [
-            '#fff', '#dbd8e0', '#684193', '#e3cce5', '#fff6cc', 
-            '#649624', '#9bb221', '#c3d17c', '#ffd700', '#ffe766', 
-            '#fcd899', '#f29104', '#e6342a', '#e94f1c', '#be1823', 
-            '#aa7034', '#e94e1b'
-        ];
-
-        require(index < rdColors.length, "out of index");
-        return rdColors[index];
-    }
 
     function getSkyColor( int altitude) internal pure returns (string memory , string memory) {
         
@@ -454,7 +351,7 @@ uint256 constant TO_DEG = 57295779513224454144;
 
         int256 diffAngle = azimuth - heading;
 
-        if (abs(diffAngle) > 1800000) {
+        if (NDUtils.abs(diffAngle) > 1800000) {
             diffAngle = diffAngle > 0 ? diffAngle - 3600000 : diffAngle + 3600000;
         }
 
@@ -475,14 +372,14 @@ uint256 constant TO_DEG = 57295779513224454144;
         if (altitude <= 0) {
             flowerSvg = string.concat(stick, transformContainer, blossom, front , '</g>');
 
-            flowerSvg = replaceFirst(flowerSvg, "<!--azi-->", "0");
-            flowerSvg = replaceFirst(flowerSvg, "<!--alt-->", "0");
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--azi-->", "0");
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--alt-->", "0");
 
             if(flowerType == FlowerType.GENTIAN) {
-                  flowerSvg = replaceFirst(flowerSvg, "<!--aziStick-->", "0");
+                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--aziStick-->", "0");
             }
         } else {
-            if (abs(angle) >= 9000) {
+            if (NDUtils.abs(angle) >= 9000) {
                 flowerSvg = string.concat(stick, transformContainer, blossom, front, '</g>');
 
             } else {
@@ -509,76 +406,80 @@ uint256 constant TO_DEG = 57295779513224454144;
                 angle = -2750;
             } 
 
-            flowerSvg = replaceFirst(flowerSvg, "<!--azi-->", string.concat(renderDecimal(angle), "deg"));
-            flowerSvg = replaceFirst(flowerSvg, "<!--alt-->", string.concat(renderDecimal(altitude), "deg"));
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--azi-->", string.concat(NDUtils.renderDecimal(angle), "deg"));
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--alt-->", string.concat(NDUtils.renderDecimal(altitude), "deg"));
             if(flowerType == FlowerType.GENTIAN) {
-                  flowerSvg = replaceFirst(flowerSvg, "<!--aziStick-->", string.concat(renderDecimal(angle), "deg"));
+                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--aziStick-->", string.concat(NDUtils.renderDecimal(angle), "deg"));
             }
         }
 
         if(hasPot) {
             if (flowerType == FlowerType.ROSE) {
-                flowerSvg = string.concat('<g transform="translate(0 32)"><polygon fill="#fde0ad" points="-7 -73 7 -73 19 3 -19 3 -7 -73" />', flowerSvg, '</g>');
+                flowerSvg = string.concat('<g transform="translate(0 32)"><polygon fill="#d7e0a7" points="-7 -73 7 -73 19 3 -19 3 -7 -73" />', flowerSvg, '</g>');
             } else {
-                flowerSvg = string.concat('<rect y="-15"  fill="#fde0ad" x="-25"  width="50" height="50" /><rect y="-5" fill="#aa7035" width="30" height="10" x="-15" />', flowerSvg);
+                flowerSvg = string.concat('<rect y="-15"  fill="#d7e0a7" x="-25"  width="50" height="50" /><rect y="-5" fill="#aa7035" width="30" height="10" x="-15" />', flowerSvg);
             }
+             flowerSvg = string.concat('<g id="fg">', flowerSvg, '</g>');
+        } else {
+            flowerSvg = string.concat('<g id="fs">', flowerSvg, '</g>');
         }
 
-        return replaceFirst(svg, "<!--flower-->", flowerSvg);
-        //return svg;
+
+        return flowerSvg;
     }
 
     function computeStarttime(
         uint timestamp,
-        uint checkInterval,
-        uint minDuration,
-        uint maxDuration,
-        uint possibleOffset,
-        uint appearanceProbability,
+        AssetInScene memory asset,
         string memory salt,
-        DAYTIME dayNight,
         uint sunrise,
-        uint sunset
+        uint sunset,
+        bool isMoving
     ) public pure returns (uint[] memory) {
 
-        uint minStartTime = timestamp - maxDuration - possibleOffset;
-        uint maxStartTime = timestamp;
-        bool isTimeFrameValid = true;
+ 
+         uint visibleCount = 0;
+         uint[] memory visibleStartTimes;
         
         {
-          if (dayNight != DAYTIME.NIGHT_AND_DAY) {
+        uint minStartTime = timestamp - asset.maxDuration - asset.possibleOffset;
+        uint maxStartTime = timestamp;
+         bool isTimeFrameValid = true;
+          if (asset.dayTime != DAYTIME.NIGHT_AND_DAY) {
 
             sunrise = sunrise / 1e18;
             sunset = sunset / 1e18;
 
-            (minStartTime, maxStartTime, isTimeFrameValid) = adjustTimeStampsForAssetVisibility(minStartTime, maxStartTime, sunrise, sunset, dayNight, 0, maxDuration);
+            (minStartTime, maxStartTime, isTimeFrameValid) = adjustTimeStampsForAssetVisibility(minStartTime, maxStartTime, sunrise, sunset, asset.dayTime, 0, asset.maxDuration);
             if (!isTimeFrameValid) {
                 return new uint[](0);
             }
         }  
-        }
-        uint lastCheckTimestamp = maxStartTime - (maxStartTime % checkInterval);
-        uint firstCheckTimestamp = minStartTime - (minStartTime % checkInterval);
-        uint checkCount = uint(lastCheckTimestamp - firstCheckTimestamp) / uint(checkInterval) + 1;
+    
+        
+        uint lastCheckTimestamp = maxStartTime - (maxStartTime % asset.checkInterval);
+        uint firstCheckTimestamp = minStartTime - (minStartTime % asset.checkInterval);
+        uint checkCount = uint(lastCheckTimestamp - firstCheckTimestamp) / uint(asset.checkInterval) + 1;
 
-        uint[] memory visibleStartTimes = new uint[](checkCount);
-        uint visibleCount = 0;
+        visibleStartTimes = new uint[](checkCount);
+       
 
          
          for (uint i = 0; i < checkCount; i++) {
-            uint checkTimestamp = uint(firstCheckTimestamp) + i * uint(checkInterval);
-            string memory startTimeSalt = string(abi.encodePacked(salt, checkTimestamp.toString()));
+            uint checkTimestamp = uint(firstCheckTimestamp) + i * uint(asset.checkInterval);
+            string memory startTimeSalt = string.concat(salt, checkTimestamp.toString());
 
-            if (randomNum(startTimeSalt, 0, 100) < uint(appearanceProbability)) {
+            if (NDUtils.randomNum(startTimeSalt, 0, 100) < uint(asset.probability)) {
             
-                uint startTime = uint(checkTimestamp) + randomNum(startTimeSalt, 0, uint(possibleOffset));
-                uint endTime = startTime + randomNum(startTimeSalt, uint(minDuration), uint(maxDuration));
-                if (startTime <= timestamp && endTime >= timestamp && uint(startTime) >= uint(minStartTime)) {
+                uint startTime = uint(checkTimestamp) + NDUtils.randomNum(startTimeSalt, 0, uint(asset.possibleOffset));
+                uint endTime = startTime + NDUtils.randomNum(startTimeSalt, uint(asset.minDuration), uint(asset.maxDuration));
+                if (startTime <= timestamp && endTime +  (isMoving? (asset.minDuration / 3) : 0) >= timestamp && uint(startTime) >= uint(minStartTime)) {
                     visibleStartTimes[visibleCount] = startTime;
                     visibleCount++;
                 }
             }
         } 
+        }
         uint[] memory actualVisible = new uint[](visibleCount);
         for (uint i = 0; i < visibleCount; i++) {
             actualVisible[i] = visibleStartTimes[i];
@@ -647,36 +548,76 @@ uint256 constant TO_DEG = 57295779513224454144;
 
             int yValue = 10 + Trigonometry.cos(rotation) * 68 + (68 * 1e18);
 
-            string memory xDec = renderDecimal(xValue / 1e16);
-            string memory yDec = renderDecimal(yValue / 1e16);
+            string memory xDec = NDUtils.renderDecimal(xValue / 1e16);
+            string memory yDec = NDUtils.renderDecimal(yValue / 1e16);
 
  
 
             string memory lightHouse =  string.concat('<polygon opacity="0.2" fill="#fff" points="' , xDec, ',', yDec, ',0,0,', xDec,',-',yDec, '"/>');
-            return replaceFirst(svg, "<!--light-->", lightHouse);
+            return NDUtils.replaceFirst(svg, "<!--light-->", lightHouse);
 
 
         }
 
+     function renderAirplanes(        
+        uint timestamp, 
+        uint tokenId, uint horizonInPx) public view returns (string memory) {
+
+            string memory salt = tokenId.toString();
+
+            string memory aeroplanes = renderMovingAsset(timestamp, salt, "aeroplane", false, 0, horizonInPx - 30, false, 100, 100, 120, 120, 50, 60 );
+            string memory flock = renderMovingAsset(timestamp, salt, "flock", false, 30, horizonInPx - 30, false, 100, 100, 300, 300, 50, 90 ); 
+            string memory assetsSVG = string.concat(aeroplanes, flock);
+            return assetsSVG;
+        }
+
+    function renderSunclock(string memory svg, int azimuth, int altitude, int heading) public view returns (string memory) {
+
+        if (altitude < 0) {
+            svg = NDUtils.replaceFirst(svg, "$s", "");
+            return svg;
+        }
+
+    
+        int256 angle = getDiffAngle(azimuth, heading);
+
+        int angleRad = angle * int(TO_RAD) / 1e4;
+
+        int cosOfAngle = NDUtils.abs(Trigonometry.cos(angleRad) / 1e14 );
+
+        int cosAngleAdjustment = 6000 +  (50000000/cosOfAngle); 
+
+        int shadowLength = cosAngleAdjustment * 30;
+
+        shadowLength = shadowLength > 1000000 ? int(1000000) : shadowLength;
+        shadowLength /= 1e2;
+        angle /= 1e2;
+
+        string memory shadowSVG = string.concat('<rect x="817" y="664" opacity="0.6" fill="#649624" width="3.6" height="', NDUtils.renderDecimal(shadowLength) ,'" transform="rotate(', NDUtils.renderDecimal(angle), ' 819 664)"/>');
+    
+        svg = NDUtils.replaceFirst(svg, "$s", shadowSVG);
+        return svg;
+    }
+
 
 
     function generateClouds(int skyHeight, uint nonce) public pure returns (string memory) {
-        uint numClouds = randomNum(nonce++, 1, 5);
+        uint numClouds = NDUtils.randomNum(nonce++, 1, 5);
         string memory clouds = '';
         for (uint i = 0; i < numClouds; i++) {
 
-            uint layers = randomNum(nonce++, 1, 2);
-            uint y = randomNum(nonce++, 0, uint(skyHeight));
-            int baseX = int(randomNum(nonce++, 0, 1090)) - 10;
+            uint layers = NDUtils.randomNum(nonce++, 1, 2);
+            uint y = NDUtils.randomNum(nonce++, 0, uint(skyHeight));
+            int baseX = int(NDUtils.randomNum(nonce++, 0, 1090)) - 10;
       
             for (uint j = 0; j < layers; j++) {
-                int x = int(randomNum(nonce++, 10, 50));
+                int x = int(NDUtils.randomNum(nonce++, 10, 50));
                 // shuffle whetver x is positive or negative
-                if (randomNum(nonce++, 0, 1) == 1) {
+                if (NDUtils.randomNum(nonce++, 0, 1) == 1) {
                     x = -x;
                 }
                 x += baseX;
-                uint width = randomNum(nonce++, 80, 100);
+                uint width = NDUtils.randomNum(nonce++, 80, 100);
                 uint height = 30;
 
                 //concat clouds in one string
@@ -691,143 +632,5 @@ uint256 constant TO_DEG = 57295779513224454144;
 
 
 
-
-    /// @notice ATAN2(Y,X) FUNCTION (MORE PRECISE MORE GAS)
-    /// @param y y
-    /// @param x x
-    /// @return T T
-    function p_atan2(int256 y, int256 x) public pure returns (int256 T) {
-        int256 c1 = 3141592653589793300 / 4;
-        int256 c2 = 3 * c1;
-        int256 abs_y = y >= 0 ? y : -y;
-        abs_y += 1e8;
-
-        if (x >= 0) {
-            int256 r = ((x - abs_y) * 1e18) / (x + abs_y);
-            T = (1963e14 * r**3) / 1e54 - (9817e14 * r) / 1e18 + c1;
-        } else {
-            int256 r = ((x + abs_y) * 1e18) / (abs_y - x);
-            T = (1963e14 * r**3) / 1e54 - (9817e14 * r) / 1e18 + c2;
-        }
-        if (y < 0) {
-            return -T;
-        } else {
-            return T;
-        }
-    }
-
-
-
-
-     /// @dev Returns `subject` with the first occurrence of `search` replaced with `replacement`.
-    function replaceFirst(string memory subject, string memory search, string memory replacement)
-        internal
-        pure
-        returns (string memory result)
-    {
-        /// @solidity memory-safe-assembly
-        assembly {
-            let subjectLength := mload(subject)
-            let searchLength := mload(search)
-            let replacementLength := mload(replacement)
-
-            subject := add(subject, 0x20)
-            search := add(search, 0x20)
-            replacement := add(replacement, 0x20)
-            result := add(mload(0x40), 0x20)
-
-            let subjectEnd := add(subject, subjectLength)
-            if iszero(gt(searchLength, subjectLength)) {
-                let subjectSearchEnd := add(sub(subjectEnd, searchLength), 1)
-                let h := 0
-                if iszero(lt(searchLength, 32)) { h := keccak256(search, searchLength) }
-                let m := shl(3, sub(32, and(searchLength, 31)))
-                let s := mload(search)
-                for {} 1 {} {
-                    let t := mload(subject)
-                    if iszero(shr(m, xor(t, s))) {
-                        if h {
-                            if iszero(eq(keccak256(subject, searchLength), h)) {
-                                mstore(result, t)
-                                result := add(result, 1)
-                                subject := add(subject, 1)
-                                if iszero(lt(subject, subjectSearchEnd)) { break }
-                                continue
-                            }
-                        }
-                        // Copy the `replacement` one word at a time.
-                        for { let o := 0 } 1 {} {
-                            mstore(add(result, o), mload(add(replacement, o)))
-                            o := add(o, 0x20)
-                            if iszero(lt(o, replacementLength)) { break }
-                        }
-                        result := add(result, replacementLength)
-                        subject := add(subject, searchLength)
-                        // Break after the first replacement
-                        break
-                    }
-                    mstore(result, t)
-                    result := add(result, 1)
-                    subject := add(subject, 1)
-                    if iszero(lt(subject, subjectSearchEnd)) { break }
-                }
-            }
-
-            let resultRemainder := result
-            result := add(mload(0x40), 0x20)
-            let k := add(sub(resultRemainder, result), sub(subjectEnd, subject))
-            // Copy the rest of the string one word at a time.
-            for {} lt(subject, subjectEnd) {} {
-                mstore(resultRemainder, mload(subject))
-                resultRemainder := add(resultRemainder, 0x20)
-                subject := add(subject, 0x20)
-            }
-            result := sub(result, 0x20)
-            // Zeroize the slot after the string.
-            let last := add(add(result, 0x20), k)
-            mstore(last, 0)
-            // Allocate memory for the length and the bytes,
-            // rounded up to a multiple of 32.
-            mstore(0x40, and(add(last, 31), not(31)))
-            // Store the length of the result.
-            mstore(result, k)
-        }
-    }
-
-    function abs(int x) private pure returns (int) {
-    return x >= 0 ? x : -x;
-}
-
-function renderDecimal(int256 value, uint decimals) public pure returns (string memory) {
-        bool isNegative = value < 0;
-        int256 integerPart = value / int(10 ** decimals);
-        int256 decimalPart = abs(value % int(10**decimals));
-
-        if (isNegative && integerPart == 0) {
-            return string.concat(
-                "-0.",
-                padZeroes(decimalPart.toStringSigned(), 2)
-            );
-        }
-
-        return string.concat(
-            integerPart.toStringSigned(),
-            ".",
-            padZeroes(decimalPart.toStringSigned(), 2)
-        );
-    }
-
-    function renderDecimal(int256 value) public pure returns (string memory) {
-        return renderDecimal(value, 2);
-    }
-
-
-
-    function padZeroes(string memory number, uint256 length) private pure returns (string memory) {
-        while(bytes(number).length < length) {
-            number = string.concat("0", number);
-        }
-        return number;
-    }
 
 }

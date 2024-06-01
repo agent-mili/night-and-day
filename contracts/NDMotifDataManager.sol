@@ -9,7 +9,7 @@ import "./motifs/Assets.sol";
 
 
 import"./NDDecoder.sol";
-import "./NDRenderer.sol";
+import "./NDUtils.sol";
 
 
 import "./BasicMotif.sol";
@@ -191,8 +191,8 @@ contract NDMotifDataManager {
         int16[] memory leafPos = new int16[](2);
         leafPos[0] = -3;
         leafPos[1] = 71;
-        fullBlossom = NDRenderer.setUseRotations(blossom, "sunP", petalRotations, petalRotationAnchor);
-        fullFlowerStick = NDRenderer.setUseTags(flowerStick, "sunP", leafPos , false, "leaf");
+        fullBlossom = NDUtils.setUseRotations(blossom, "sunP", petalRotations, petalRotationAnchor);
+        fullFlowerStick = NDUtils.setUseTags(flowerStick, "sunP", leafPos , false, "leaf");
         string memory back = '<circle fill="#9bb224" cx="0" cy="-75" r="26"/>';
         string memory front = '<circle fill="#aa7035" cx="0" cy="-75" r="18"/>';
 
@@ -213,7 +213,7 @@ function getGentian() public pure returns (string memory, string memory, string 
 
     int16 [2] memory petalRotationAnchor = [int16(0), int16(-52)];
     string memory petal = '<path id="epetal" fill="#EACCF9" d="M0.8,-68.8c-1.8-6.2-7.9-9.9-7.9-9.9s-3.4,6.4-1.8,12.5c1.7,6.2,7.9,9.8,7.9,9.8S2.5,-62.6,0.8,-68.8z"/>';
-    string memory blossom = NDRenderer.setUseRotations(string.concat('<g>', petal , '<!--epetal--></g>'), "epetal", petalRotations, petalRotationAnchor);
+    string memory blossom = NDUtils.setUseRotations(string.concat('<g>', petal , '<!--epetal--></g>'), "epetal", petalRotations, petalRotationAnchor);
 
     return (blossom, flowerStick, back, front);
 
