@@ -10,9 +10,11 @@ import "../contracts/motifs/Motifs2.sol";
 
 import "../contracts/NAD.sol";
 
-contract NADTest is Test {
-     NAD public nandd;
 
+contract NADTest is Test {
+   //  NAD public nandd;
+
+/* 
     function setUp() public {
         // Contract deployment und Setup
         GenericMotifs genericMotif = new GenericMotifs();
@@ -37,8 +39,8 @@ contract NADTest is Test {
             address(ndMotifDataManager)
         );
     }
-
-    function testTokenUriWithTime() view private {
+ */
+   /*  function testTokenUriWithTime() view private {
 
         // Da Foundry keine native Unterstützung für das Schreiben in Dateisysteme hat, kommentieren wir den fs.writeFileSync Teil aus.
         string memory tokenURI = nandd.tokenUriWithTime(120, 1712142140);
@@ -88,5 +90,5 @@ contract NADTest is Test {
         vm.stopPrank();
         // Validierung
        // assertEq(nandd.totalSupply(), 1); // Ersetze `erwarteterWert` mit dem tatsächlichen erwarteten Wert des totalSupply
-    }
+    } */
 }

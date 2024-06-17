@@ -142,32 +142,21 @@ contract NDMotifDataManager {
 
     }
 
-    function getBeachColor(uint256 tokenId) public view returns (string memory, string memory) {
+    function getBeachTraits(uint256 tokenId) public view returns (BeachTraits memory) {
 
-        return genericMotifs.getBeachColors(tokenId - BEACHES_START_INDEX);
+        return genericMotifs.getBeachTraits(tokenId - BEACHES_START_INDEX);
     }
 
     function getSkinColor(uint256 tokenId) public view returns (string memory, string memory) {
         return genericMotifs.getSkinColor(tokenId - BEACHES_START_INDEX);
     }
 
-    function getSkylineType(uint256 tokenId) public view returns (uint) {
-        return genericMotifs.getSkylineType(tokenId - SKYSCRAPERS_START_INDEX);
+    function getCityTraits(uint256 tokenId) public view returns (CityTraits memory) {
+        return genericMotifs.getCityTraits(tokenId - SKYSCRAPERS_START_INDEX);
     }
 
-    function isCityCoastel(uint256 tokenId) public view returns (bool, string memory) {
-        return genericMotifs.isCityCoastal(tokenId - SKYSCRAPERS_START_INDEX);
-    }
 
-    function getTradingChartAddress(uint tokenId) public view returns (address) {
-        return genericMotifs.getTradingChartAddress(tokenId - SKYSCRAPERS_START_INDEX);
-    }
-
-    function getClimateZoneForLandscape(uint tokenId) public view returns (string memory, string memory,uint) {
-        return genericMotifs.getClimateZoneForLandscape(tokenId - LANDSCAPE_START_INDEX);
-    }
-
-    function getLandScapeTraits(uint tokenId) public view returns (bool, bool, bool, bool, string memory) {
+    function getLandScapeTraits(uint tokenId) public view returns (LandscapeTraits memory) {
         return genericMotifs.getLandscapeTraits(tokenId - LANDSCAPE_START_INDEX);
     }
 

@@ -17,9 +17,9 @@ import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC16
 contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
 
     using ECDSA for bytes32;
-    mapping(uint256 => bool) public usedIndexes;
+   // mapping(uint256 => bool) public usedIndexes;
 
-    address private signerAddress = 0x09505292D5eae5504cEc5c8BA86e09e83C810AA9;
+  //  address private signerAddress = 0x09505292D5eae5504cEc5c8BA86e09e83C810AA9;
 
     uint256[] private shuffledTokenIds = [187,
  259,
@@ -351,19 +351,19 @@ contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
 
     }
 
-    function reservedMint(bytes memory signature, uint256 codeIndex) external nonReentrant {
-          require(verifyAddressSigner(signature, codeIndex), "SIGNATURE_FAILED");
-        require(totalSupply < maxSupply, "Max supply reached");
-        require(reservedSupply > 0, "No reserved supply left");
+    // function reservedMint(bytes memory signature, uint256 codeIndex) external nonReentrant {
+    //       require(verifyAddressSigner(signature, codeIndex), "SIGNATURE_FAILED");
+    //     require(totalSupply < maxSupply, "Max supply reached");
+    //     require(reservedSupply > 0, "No reserved supply left");
                  
-        uint randomId = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender))) % shuffledTokenIds.length;
-        uint256 tokenId = shuffledTokenIds[randomId];
-        shuffledTokenIds[randomId] = shuffledTokenIds[shuffledTokenIds.length - 1];
-        shuffledTokenIds.pop();
-        totalSupply += 1;
-        reservedSupply -= 1;
-        _safeMint(msg.sender, tokenId);
-    }
+    //     uint randomId = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender))) % shuffledTokenIds.length;
+    //     uint256 tokenId = shuffledTokenIds[randomId];
+    //     shuffledTokenIds[randomId] = shuffledTokenIds[shuffledTokenIds.length - 1];
+    //     shuffledTokenIds.pop();
+    //     totalSupply += 1;
+    //     reservedSupply -= 1;
+    //     _safeMint(msg.sender, tokenId);
+    // }
 
     function mint() external nonReentrant {
         require(totalSupply < maxSupply, "Max supply reached");
@@ -375,26 +375,26 @@ contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
         _safeMint(msg.sender, tokenId);
     }
 
- function verifyAddressSigner(bytes memory signature, uint256 index) public returns (bool) {
-        // Check if the index has already been used
-        require(!usedIndexes[index], "Index already used");
+//  function verifyAddressSigner(bytes memory signature, uint256 index) public returns (bool) {
+//         // Check if the index has already been used
+//         require(!usedIndexes[index], "Index already used");
 
-        // Encode the message with the sender's address and the index
-        bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, index));
-        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+//         // Encode the message with the sender's address and the index
+//         bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, index));
+//         bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
 
-        // Recover the signer address from the signature
-        address recoveredAddress = ethSignedMessageHash.recover(signature);
+//         // Recover the signer address from the signature
+//         address recoveredAddress = ethSignedMessageHash.recover(signature);
 
-        // Check if the recovered address matches the signer's address
-        if (recoveredAddress == signerAddress) {
-            // Mark the index as used
-            usedIndexes[index] = true;
-            return true;
-        } else {
-            return false;
-        }
-    }
+//         // Check if the recovered address matches the signer's address
+//         if (recoveredAddress == signerAddress) {
+//             // Mark the index as used
+//             usedIndexes[index] = true;
+//             return true;
+//         } else {
+//             return false;
+//         }
+//     }
 
 
      struct RoyaltyInfo {

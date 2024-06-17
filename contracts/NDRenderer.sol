@@ -10,7 +10,6 @@ import "./SunCalc.sol";
 
 import "./NDUtils.sol";
 
-import "forge-std/console.sol";
 
 
 library NDRenderer {
@@ -184,7 +183,6 @@ uint256 constant TO_DEG = 57295779513224454144;
                     assetSvg = string.concat('<use href="#', assetName ,'" transform="translate(', x.toStringSigned(), ', ', y.toString(), ') scale(', NDUtils.renderDecimal(int(int(scale) * direction)) , ' ', NDUtils.renderDecimal(int(scale)), ') "/>');
                 }
 
-                console.log(assetSvg);
 
                 assets = string.concat(assets, assetSvg);
             }

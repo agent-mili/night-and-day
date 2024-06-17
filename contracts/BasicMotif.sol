@@ -83,6 +83,49 @@ struct Motif {
         MotifType motifType;
     }
 
+struct BeachTraits {
+    string attributes;
+    string beachColor;
+    string skinColor;
+    string shortsColor;
+    string towelColor;
+    uint accessoireType;
+    string shortsPattern;
+    string towelPattern;
+
+}
+
+struct CityTraits {
+    string attributes;
+    address priceFeed;
+    string skylineSVG;
+    string displaySVG;
+    uint displayType;
+    uint skyLinetype;
+    bool isCoastel;
+    uint accessoireType;
+    string tableColor;
+}
+
+
+struct LandscapeTraits {
+    string attributes;
+    string accessoireType;
+    string climateZoneColor;
+    uint climateZoneIndex;
+    string before;
+    string front;
+    bool hasCity;
+    string skinColor;
+    string shirtColor;
+    string hat;
+    string pantsColor;
+    bool hasRiver;
+    bool hasMountains;
+    bool hasOcean;
+
+}
+
 
 struct SVGData {
 

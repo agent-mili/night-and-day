@@ -121,7 +121,7 @@ contract NAD is ERC721Reservations {
           ( svgData.skyColor, svgData.waterColor) = NDRenderer.getSkyColor(sunMoon.altitude / 1e16);
            constructedNFT.svg = NDUtils.replaceFirst(constructedNFT.svg, "<!--watercolor-->", svgData.waterColor);
 
-        uint randomFlower = NDUtils.randomNum(tokenId, 0, 2);        
+        uint randomFlower = NDUtils.randomNum(motif.name, 0, 2);        
 
          FlowerType flowerType =  FlowerType(randomFlower);
          bool hasPot = motif.motifType != MotifType.SIGHT_SEEING;
@@ -188,7 +188,7 @@ contract NAD is ERC721Reservations {
             string memory salt = tokenId.toString();
 
             string memory assetsSVG =  NDRenderer.renderMovingAsset(timestamp, salt, assetName, true, 0, 150, false, 50, 50, 20 * 60, 120 * 60, 70, 30 * 60);
-            return NDUtils.replaceFirst(svg, "$b", assetsSVG);
+            return NDUtils.replaceFirst(svg, "$ba", assetsSVG);
         }
 
 
@@ -212,12 +212,13 @@ contract NAD is ERC721Reservations {
 
         function renderBeachTraits(ConstructedNFT memory nft, uint tokenId) public view returns (ConstructedNFT memory) {
             
-            (string memory beachColor, string memory beachColorAttribute) =  motifDataManager.getBeachColor(tokenId);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--bc-->", beachColor);
-            nft.attributes = string.concat(nft.attributes, beachColorAttribute);
-            (string memory skinColor, string memory skinColorAttribute) =  motifDataManager.getSkinColor(tokenId);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--sc-->", skinColor);
-            nft.attributes = string.concat(nft.attributes, skinColorAttribute);
+            BeachTraits memory beachTraits =  motifDataManager.getBeachTraits(tokenId);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$c", beachTraits.beachColor);
+            nft.attributes = string.concat(nft.attributes, beachTraits.attributes);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$s", beachTraits.skinColor);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$t", beachTraits.towelColor);
+
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$bs", beachTraits.shortsColor);
             return nft;
         } 
 
@@ -225,8 +226,7 @@ contract NAD is ERC721Reservations {
             
             uint sightSeeingTokenId = NDUtils.randomNum(tokenId, 0, 18);
             ConstructedNFT memory nftInside = generateNFT(sightSeeingTokenId, timestamp);
-            console.log("renderNFTInside");
-            console.log(nftInside.name);
+
 
             nft.attributes = string.concat(nft.attributes, ',{"trait_type": "NFT Inside", "value": "', nftInside.name, '"}');
             nft.svg =  NDUtils.replaceFirst(nft.svg, "<!--nft-->", nftInside.svg);
@@ -239,26 +239,20 @@ contract NAD is ERC721Reservations {
 
 
             //RENDER SkYLINE
-            string[4] memory skyLineTypes = ["mini", "midi", "large", "mega"];
-            uint skyLineType = motifDataManager.getSkylineType(tokenId);
-            for(uint i = 0; i < skyLineTypes.length; i++) {
-                string memory skylineString = skyLineTypes[i];
-                nft.svg = NDUtils.replaceFirst( nft.svg, string.concat("<!--", skylineString, "-->"), i <=skyLineType ? "visible" : "hidden");
-            }
-            nft.attributes = string.concat(nft.attributes, ',{"trait_type": "Skyline", "value": "', skyLineTypes[skyLineType], '"}');
+            CityTraits memory cityTraits = motifDataManager.getCityTraits(tokenId);
 
-            (bool isCityCoastel, string memory attribute) = motifDataManager.isCityCoastel(tokenId);
-            nft.attributes = string.concat(nft.attributes, attribute);
 
-             nft.svg = NDUtils.replaceFirst( nft.svg, "<!--coastal-->", isCityCoastel ? "hidden" : "visible");
+            nft.attributes = string.concat(nft.attributes, cityTraits.attributes);
 
-              nft.svg = NDUtils.replaceFirst( nft.svg, "<!--water-->", isCityCoastel ? "visible" : "hidden");
+
+            nft.svg = NDUtils.replaceFirst( nft.svg, "$sk", cityTraits.skylineSVG);
+             nft.svg = NDUtils.replaceFirst( nft.svg, "<!--coastal-->", cityTraits.isCoastel ? "hidden" : "visible");
+            nft.svg = NDUtils.replaceFirst( nft.svg, "<!--water-->", cityTraits.isCoastel ? "visible" : "hidden");
 
          
             //RENDER CHART
             uint[] memory prices = new uint[](16);
-            address tradingChartAddress = motifDataManager.getTradingChartAddress(tokenId);
-            AggregatorV3Interface dataFeed = AggregatorV3Interface(tradingChartAddress);
+            AggregatorV3Interface dataFeed = AggregatorV3Interface(cityTraits.priceFeed);
             (uint80 firstRoundID , int price , ,uint firstUpdatedAt , ) = dataFeed.latestRoundData();
             prices[0] = uint(price);
             prices[1] = firstUpdatedAt;
@@ -293,10 +287,10 @@ contract NAD is ERC721Reservations {
             uint timeRange = prices[1] - prices[prices.length - 1];
 
 
-            uint chartWidth = 280;
-            uint chartHeight = 150;
-            uint chartX = 40;
-            uint chartY = 680;
+            uint chartWidth = 205;
+            uint chartHeight = 146;
+            uint chartX = 122;
+            uint chartY = 777;
 
             // iterate prices and create line chart based on price and timestamp
             string memory chart;
@@ -312,11 +306,11 @@ contract NAD is ERC721Reservations {
             string memory lowPriceStr = NDUtils.formatChartNumber(lowestPrice/(10**decimals));
 
             string memory chartSVG = string.concat('<path d="', chart,'" fill="none" stroke="#FFDB19" stroke-width="4" />');
-            string memory descriptionSVG = string.concat('<text x="20" y="620" fill="#9400E3" font-family="Arial-Black" font-size="24px">',description, '</text>');
+            string memory descriptionSVG = string.concat('<text x="131" y="750" fill="#9400E3" font-family="Arial-Black" letter-spacing="1" font-size="20px">',description, '</text>');
 
-            nft.svg = NDUtils.replaceFirst(nft.svg, '<!--map-->', highPriceStr);
-            nft.svg = NDUtils.replaceFirst(nft.svg, '<!--mip-->', lowPriceStr);
-            nft.svg =  NDUtils.replaceFirst(nft.svg, "<!--chart-->", string.concat(chartSVG, descriptionSVG));
+
+            nft.svg =  NDUtils.replaceFirst(nft.svg, "$ch", string.concat(chartSVG, descriptionSVG));
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$di",cityTraits.displaySVG);
             return nft;
         }
 
@@ -328,25 +322,16 @@ contract NAD is ERC721Reservations {
 
             
 
-            (string memory landscapeColor, string memory landscapeColorTrait, uint climateZoneIndex) =  motifDataManager.getClimateZoneForLandscape(tokenId);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--cc-->", landscapeColor);
-            nft.attributes = string.concat(nft.attributes, landscapeColorTrait);
-            
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--p-->", climateZoneIndex == 0 ? visible : hidden);
-            nft.svg= NDUtils.replaceFirst(nft.svg, "<!--t-->",  climateZoneIndex == 1 ? visible : hidden);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--d-->", climateZoneIndex == 2 ? visible : hidden);
 
-             (bool hasCity,bool hasRiver,bool hasMountains,bool hasOcean, string memory sTraits) = motifDataManager.getLandScapeTraits(tokenId);
 
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--c-->", hasCity ? visible : hidden);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--r-->", hasRiver ? visible : hidden);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--m-->", hasMountains ? visible : hidden);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--o-->", hasOcean ? visible : hidden);
-            nft.attributes = string.concat(nft.attributes, sTraits);
+            LandscapeTraits memory landscapeTraits = motifDataManager.getLandScapeTraits(tokenId);
 
-            (string memory skinColor, string memory skinColorAttribute) =  motifDataManager.getSkinColor(tokenId);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--sc-->", skinColor);
-            nft.attributes = string.concat(nft.attributes, skinColorAttribute);
+             nft.svg = NDUtils.replaceFirst(nft.svg, "<!--cc-->", landscapeTraits.climateZoneColor);
+
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$be", landscapeTraits.before);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$af", landscapeTraits.front);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "<!--sc-->", landscapeTraits.skinColor);
+            nft.attributes = string.concat(nft.attributes, landscapeTraits.attributes);
 
 
             return nft;
