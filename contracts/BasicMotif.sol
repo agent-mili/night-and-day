@@ -92,6 +92,8 @@ struct BeachTraits {
     uint accessoireType;
     string shortsPattern;
     string towelPattern;
+    string shortsSVG;
+    string towelSVG;
 
 }
 

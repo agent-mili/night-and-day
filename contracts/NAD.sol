@@ -216,9 +216,9 @@ contract NAD is ERC721Reservations {
             nft.svg = NDUtils.replaceFirst(nft.svg, "$c", beachTraits.beachColor);
             nft.attributes = string.concat(nft.attributes, beachTraits.attributes);
             nft.svg = NDUtils.replaceFirst(nft.svg, "$s", beachTraits.skinColor);
-            nft.svg = NDUtils.replaceFirst(nft.svg, "$t", beachTraits.towelColor);
 
-            nft.svg = NDUtils.replaceFirst(nft.svg, "$bs", beachTraits.shortsColor);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$sh", beachTraits.shortsSVG);
+            nft.svg = NDUtils.replaceFirst(nft.svg, "$to", beachTraits.towelSVG);
             return nft;
         } 
 
@@ -289,7 +289,7 @@ contract NAD is ERC721Reservations {
 
             uint chartWidth = 205;
             uint chartHeight = 146;
-            uint chartX = 122;
+            uint chartX = 117;
             uint chartY = 777;
 
             // iterate prices and create line chart based on price and timestamp
@@ -305,8 +305,9 @@ contract NAD is ERC721Reservations {
             string memory highPriceStr = NDUtils.formatChartNumber(highestPrice/(10**decimals));
             string memory lowPriceStr = NDUtils.formatChartNumber(lowestPrice/(10**decimals));
 
+
             string memory chartSVG = string.concat('<path d="', chart,'" fill="none" stroke="#FFDB19" stroke-width="4" />');
-            string memory descriptionSVG = string.concat('<text x="131" y="750" fill="#9400E3" font-family="Arial-Black" letter-spacing="1" font-size="20px">',description, '</text>');
+            string memory descriptionSVG = string.concat('<text x="220" y="', cityTraits.displayType == 0 ? '970' : '750' ,'" text-anchor="middle" fill="#9400E3" font-family="Arial-Black"  font-size="20px">',description, '</text>');
 
 
             nft.svg =  NDUtils.replaceFirst(nft.svg, "$ch", string.concat(chartSVG, descriptionSVG));

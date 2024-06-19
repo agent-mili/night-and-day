@@ -134,9 +134,9 @@ contract NDMotifDataManager {
         motif.lng = genericMotif.lng;
         motif.heading = genericMotif.heading;
         motif.svg = svg;
-        motif.scenes = genericMotifs.getScene(motifType);
+        motif.scenes = genericMotifsSVG.getScene(motifType);
 
-        motif.horizon = int(genericMotifs.getHorizon(motifType));
+        motif.horizon = int(genericMotifsSVG.getHorizon(motifType));
         motif.motifType = motifType;
         return motif;
 
