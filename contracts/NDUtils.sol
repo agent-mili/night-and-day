@@ -127,15 +127,15 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
     }
 
      function getColorByIndex(uint256 index) internal pure returns (string memory) {
-        string[17] memory rdColors = [
-            '#fff', '#dbd8e0', '#684193', '#e3cce5', '#fff6cc', 
-            '#649624', '#9bb221', '#c3d17c', '#ffd700', '#ffe766', 
-            '#fcd899', '#f29104', '#e6342a', '#e94f1c', '#be1823', 
-            '#aa7034', '#e94e1b'
+        bytes6[17] memory rdColors = [
+            bytes6('ffffff'), 'dbd8e0', '684193', 'e3cce5', 'fff6cc', 
+            '649624', '9bb221', 'c3d17c', 'ffd700', 'ffe766', 
+            'fcd899', 'f29104', 'e6342a', 'e94f1c', 'be1823', 
+            'aa7034', 'e94e1b'
         ];
 
         require(index < rdColors.length, "out of index");
-        return rdColors[index];
+        return string(abi.encodePacked("#", rdColors[index]));
     }
 
 
@@ -305,7 +305,7 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
 
 
         string memory skyBGSVG = string.concat('<rect fill="', svgData.skyColor, '" width="1080" height="1080"/>');
-        string memory skyBehind = string.concat(topSVG, skyBGSVG , svgData.sunSVG, svgData.cloudsSVG, svgData.skySceneSVG, assetsSVG, '<defs>', svgData.flowerSVG, '</defs>');
+        string memory skyBehind = string.concat(topSVG, skyBGSVG , svgData.sunSVG, svgData.cloudsSVG, svgData.skySceneSVG, assetsSVG);
 
         string memory moonMask = string.concat('<mask id="moonMask', motifTypeString, '"><rect fill="#fff" width="1080" height="1080"/>','<use href="#motif', motifTypeString, '" filter="url(#makeBlack)"/></mask>', svgData.nightSVG , svgData.moonSVG ,'</svg>');
         string memory lightHouse = '<use href="#lighthouse" filter="url(#makeBlack)"/>';

@@ -27,8 +27,8 @@ uint256 constant TO_DEG = 57295779513224454144;
 
  struct SkyAndWaterColor {
         int altitude;
-        string skyColor;
-        string waterColor;
+        bytes6 skyColor;
+        bytes6 waterColor;
     }
 
     struct SceneElement {
@@ -295,27 +295,27 @@ uint256 constant TO_DEG = 57295779513224454144;
         
         
         SkyAndWaterColor[17] memory skyColors = [
-        SkyAndWaterColor(-9000, "#ce80ff", "#f9b233"),
-        SkyAndWaterColor(-1200, "#ce80ff", "#f9b233"),
-        SkyAndWaterColor(-700, "#e780c0", "#e0b439"),
-        SkyAndWaterColor(-400, "#ff8080", "#c8b63f"),
-        SkyAndWaterColor(0, "#ff9986", "#afb845"),
-        SkyAndWaterColor(300, "#ffb28c", "#96b94c"),
-        SkyAndWaterColor(700, "#ffd986", "#7dbb52"),
-        SkyAndWaterColor(1100, "#ffff80", "#65bd58"),
-        SkyAndWaterColor(1500, "#c0eac0", "#4cbf5e"),
-        SkyAndWaterColor(2500, "#80d5ff", "#57af6c"),
-        SkyAndWaterColor(1800, "#77c7f8", "#639e7a"),
-        SkyAndWaterColor(2500, "#6dbaf1", "#6e8e88"),
-        SkyAndWaterColor(3500, "#64acea", "#797d95"),
-        SkyAndWaterColor(4700, "#5a9ee4", "#846da3"),
-        SkyAndWaterColor(6000, "#5190dd", "#905cb1"),
-        SkyAndWaterColor(7300, "#4783d6", "#9b4cbf"),
-        SkyAndWaterColor(8000, "#3e75cf", "#9b4cbf")
+        SkyAndWaterColor(-9000, "ce80ff", "f9b233"),
+        SkyAndWaterColor(-1200, "ce80ff", "f9b233"),
+        SkyAndWaterColor(-700, "e780c0", "e0b439"),
+        SkyAndWaterColor(-400, "ff8080", "c8b63f"),
+        SkyAndWaterColor(0, "ff9986", "afb845"),
+        SkyAndWaterColor(300, "ffb28c", "96b94c"),
+        SkyAndWaterColor(700, "ffd986", "7dbb52"),
+        SkyAndWaterColor(1100, "ffff80", "65bd58"),
+        SkyAndWaterColor(1500, "c0eac0", "4cbf5e"),
+        SkyAndWaterColor(2500, "80d5ff", "57af6c"),
+        SkyAndWaterColor(1800, "77c7f8", "639e7a"),
+        SkyAndWaterColor(2500, "6dbaf1", "6e8e88"),
+        SkyAndWaterColor(3500, "64acea", "797d95"),
+        SkyAndWaterColor(4700, "5a9ee4", "846da3"),
+        SkyAndWaterColor(6000, "5190dd", "905cb1"),
+        SkyAndWaterColor(7300, "4783d6", "9b4cbf"),
+        SkyAndWaterColor(8000, "3e75cf", "9b4cbf")
       
         ];
-        string memory cColor = "#fff"; 
-        string memory wColor = "#fff";
+        bytes6  cColor = bytes6("ffffff"); 
+        bytes6  wColor = bytes6("ffffff");
         for (uint i = 0; i < skyColors.length; i++) {
             if (altitude >= skyColors[i].altitude) {
                 if (i == skyColors.length - 1) {
@@ -332,7 +332,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         }
 
      
-        return (cColor, wColor);
+        return (string(abi.encodePacked("#",cColor)), string(abi.encodePacked("#",wColor)));
     }
 
     function getDiffAngle(int256 azimuth, int256 heading) public pure returns (int256) {
@@ -417,13 +417,10 @@ uint256 constant TO_DEG = 57295779513224454144;
             } else {
                 flowerSvg = string.concat('<rect y="-15"  fill="#d7e0a7" x="-25"  width="50" height="50" /><rect y="-5" fill="#aa7035" width="30" height="10" x="-15" />', flowerSvg);
             }
-             flowerSvg = string.concat('<g id="fg">', flowerSvg, '</g>');
-        } else {
-            flowerSvg = string.concat('<g id="fs">', flowerSvg, '</g>');
-        }
+        } 
 
 
-        return flowerSvg;
+        return NDUtils.replaceFirst(svg, "$fl", flowerSvg);
     }
 
     function computeStarttime(

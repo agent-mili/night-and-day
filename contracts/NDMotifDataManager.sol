@@ -2,7 +2,6 @@ pragma solidity ^0.8.25;
 
 import "./motifs/Motifs0.sol";
 import "./motifs/Motifs1.sol";
-import "./motifs/Motifs2.sol";
 import "./motifs/GenericMotifs.sol";
 import "./motifs/GenericMotifsSVG.sol";
 import "./motifs/Assets.sol";
@@ -38,20 +37,18 @@ contract NDMotifDataManager {
 
     IMotifData public sightSeeing1;
     IMotifData public sightSeeing2;
-    IMotifData public seightSeeing3;
     GenericMotifs public genericMotifs;
     GenericMotifsSVG public genericMotifsSVG;
 
 
 
 
-     constructor(address _genericMotifAddress, address  _genericMotifSVGAddress ,address _motifAdress1, address _motifAdress2,  address _motifAdress3)  {
+     constructor(address _genericMotifAddress, address  _genericMotifSVGAddress ,address _motifAdress1, address _motifAdress2)  {
 
         genericMotifs =  GenericMotifs(_genericMotifAddress);
         genericMotifsSVG =  GenericMotifsSVG(_genericMotifSVGAddress);
         sightSeeing1 =  Motifs0(_motifAdress1);
         sightSeeing2 =  Motifs1(_motifAdress2);
-        seightSeeing3 =  Motifs2(_motifAdress3);
      }
 
     function getMotifByTokenId(uint256 tokenId) public view returns (Motif memory) {
@@ -67,16 +64,14 @@ contract NDMotifDataManager {
             // handle sight seeing motifs
             motifType = MotifType.SIGHT_SEEING;
 
-           if (tokenId < 7) {
+           if (tokenId < 12) {
                motifData = sightSeeing1.getMotifData(tokenId);
               }     
-           else if (tokenId < 14) {
+           else  {
 
-               motifData =  sightSeeing2.getMotifData(tokenId -7);
+               motifData =  sightSeeing2.getMotifData(tokenId -12);
            }
-           else {
-                motifData = seightSeeing3.getMotifData(tokenId -14);
-           }
+ 
 
            motif = NDDecoder.decodeMotif(motifData);
            motif.motifType = motifType;
@@ -98,35 +93,21 @@ contract NDMotifDataManager {
         bytes memory motifData;
 
         Motif memory motif;
-        MotifType motifType;
-        string memory svg;
+        MotifType motifType = tokenId < 119 ? MotifType.BEACH : tokenId < 219 ? MotifType.SKYSCRAPER : MotifType.LANDSCAPE;
+        bytes memory flzBytesSVG;
 
-
-
-        if (tokenId < 119) {
-
-            motifType = MotifType.BEACH;
-            //handle generic motifs
-            motifData = genericMotifs.getBeach(tokenId - GENERICS_START_INDEX);
-            svg = genericMotifsSVG.getBeachSVG();
+        (bytes memory flzGenericMotifs, uint startIndex, uint endIndex) = genericMotifs.getGeneric(tokenId - GENERICS_START_INDEX);
         
-
+        bytes memory genericMotifs = NDDecoder.flzDecompress(flzGenericMotifs);
+        motifData = new bytes(endIndex - startIndex);
+        for (uint i = startIndex; i < endIndex; i++) {
+            motifData[i - startIndex] = genericMotifs[i];
         }
-        else if (tokenId < 219) {
+        
+        
+        flzBytesSVG = genericMotifsSVG.getGenericSVG(motifType);
 
-            motifType = MotifType.SKYSCRAPER;
-
-            motifData = genericMotifs.getSkyscraper(tokenId - SKYSCRAPERS_START_INDEX);
-            svg = genericMotifsSVG.getSkyscraperSVG();
-        }
-        else if (tokenId < 319) {
-
-            motifType = MotifType.LANDSCAPE;
-
-            motifData = genericMotifs.getLandscape(tokenId - LANDSCAPE_START_INDEX);
-            svg = genericMotifsSVG.getLandscapeSVG();
-        }
-
+        string memory svg = string(NDDecoder.flzDecompress(flzBytesSVG));
 
         genericMotif = NDDecoder.decodeGenericMotif(motifData);
         motif.name = genericMotif.name;
@@ -134,7 +115,7 @@ contract NDMotifDataManager {
         motif.lng = genericMotif.lng;
         motif.heading = genericMotif.heading;
         motif.svg = svg;
-        motif.scenes = genericMotifsSVG.getScene(motifType);
+        (motif.scenes, ) = NDDecoder.decodeSceneIMotif(genericMotifsSVG.getScene(motifType),0);
 
         motif.horizon = int(genericMotifsSVG.getHorizon(motifType));
         motif.motifType = motifType;

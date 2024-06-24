@@ -129,7 +129,7 @@ contract NAD is ERC721Reservations {
 
 
         (string memory blossom, string memory stick, string memory back, string memory front) = flowerType == FlowerType.ROSE ? motifDataManager.getRose() : flowerType == FlowerType.SUNFLOWER ? motifDataManager.getSunflower() : motifDataManager.getGentian(); 
-         svgData.flowerSVG = NDRenderer.renderFlower(constructedNFT.svg, sunMoon.azimuth / 1e14, sunMoon.altitude / 1e16, motif.heading * 1e4, flowerType, blossom, stick, back, front, hasPot);
+          constructedNFT.svg = NDRenderer.renderFlower(constructedNFT.svg, sunMoon.azimuth / 1e14, sunMoon.altitude / 1e16, motif.heading * 1e4, flowerType, blossom, stick, back, front, hasPot);
          constructedNFT.svg = NDRenderer.renderLighthouse(constructedNFT.svg, sunMoon.altitude, timestamp);
          svgData.nightSVG = NDRenderer.applyNight( sunMoon.altitude / 1e14, motif.motifType);
         
@@ -328,6 +328,7 @@ contract NAD is ERC721Reservations {
             LandscapeTraits memory landscapeTraits = motifDataManager.getLandScapeTraits(tokenId);
 
              nft.svg = NDUtils.replaceFirst(nft.svg, "<!--cc-->", landscapeTraits.climateZoneColor);
+             nft.svg = NDUtils.replaceFirst(nft.svg, "$pe",landscapeTraits.artistSVG);
 
             nft.svg = NDUtils.replaceFirst(nft.svg, "$be", landscapeTraits.before);
             nft.svg = NDUtils.replaceFirst(nft.svg, "$af", landscapeTraits.front);

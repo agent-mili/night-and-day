@@ -120,11 +120,13 @@ struct LandscapeTraits {
     bool hasCity;
     string skinColor;
     string shirtColor;
+    string shirtPattern;
     string hat;
     string pantsColor;
     bool hasRiver;
     bool hasMountains;
     bool hasOcean;
+    string artistSVG;
 
 }
 
@@ -138,7 +140,6 @@ struct SVGData {
         string waterColor;
         string cloudsSVG;
         string skySceneSVG;
-        string flowerSVG;
 
      }
 

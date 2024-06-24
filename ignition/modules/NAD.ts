@@ -22,7 +22,6 @@ export default buildModule("NaDDeployment", (m) => {
     // Deploye Motif Contracts
     const motif0 = m.contract("Motifs0", []);
     const motif1 = m.contract("Motifs1", []);
-    const motif2 = m.contract("Motifs2", []);
   
     // Deploye NDMotifDataManager mit Verlinkung zur NDDecoder Bibliothek
     const ndMotifDataManager = m.contract("NDMotifDataManager", [
@@ -30,7 +29,6 @@ export default buildModule("NaDDeployment", (m) => {
       genericMotifSVG,
       motif0,
       motif1,
-      motif2,
     ], {
       libraries: {
         NDDecoder: ndDecoder,
@@ -40,7 +38,7 @@ export default buildModule("NaDDeployment", (m) => {
         genericMotifSVG,
         motif0,
         motif1,
-        motif2]
+      ]
     });
   
     // Deploye NAD mit Verlinkung zu SunCalc und NDRenderer
@@ -50,7 +48,7 @@ export default buildModule("NaDDeployment", (m) => {
         NDUtils: ndUtils,
         NDRenderer: ndRenderer,
       },
-      after:[ndMotifDataManager, genericMotifSVG, motif0, motif1, motif2]
+      after:[ndMotifDataManager, genericMotifSVG, motif0, motif1]
     });
   
     return {
@@ -61,7 +59,6 @@ export default buildModule("NaDDeployment", (m) => {
       genericMotif,
       motif0,
       motif1,
-      motif2,
       genericMotifSVG,
       ndMotifDataManager,
       nandd,

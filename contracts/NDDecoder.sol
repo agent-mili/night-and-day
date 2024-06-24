@@ -29,6 +29,7 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
 
  function decodeMotif(bytes memory _data) public pure returns (Motif memory) {
        //decode name from first 20 bytes
+            _data = flzDecompress(_data);
             uint index = 0;
             string memory motifName = string(trimNullBytes(extractBytes(_data, index, 20)));
             index += 20;
@@ -265,6 +266,45 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
 
     return intArray;
 }
+
+ /// @dev Returns the decompressed `data`.
+    function flzDecompress(bytes memory data) public pure returns (bytes memory result) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            result := mload(0x40)
+            let op := add(result, 0x20)
+            let end := add(add(data, 0x20), mload(data))
+            for { data := add(data, 0x20) } lt(data, end) {} {
+                let w := mload(data)
+                let c := byte(0, w)
+                let t := shr(5, c)
+                if iszero(t) {
+                    mstore(op, mload(add(data, 1)))
+                    data := add(data, add(2, c))
+                    op := add(op, add(1, c))
+                    continue
+                }
+                for {
+                    let g := eq(t, 7)
+                    let l := add(2, xor(t, mul(g, xor(t, add(7, byte(1, w)))))) // M
+                    let s := add(add(shl(8, and(0x1f, c)), byte(add(1, g), w)), 1) // R
+                    let r := sub(op, s)
+                    let f := xor(s, mul(gt(s, 0x20), xor(s, 0x20)))
+                    let j := 0
+                } 1 {} {
+                    mstore(add(op, j), mload(add(r, j)))
+                    j := add(j, f)
+                    if lt(j, l) { continue }
+                    data := add(data, add(2, g))
+                    op := add(op, l)
+                    break
+                }
+            }
+            mstore(result, sub(op, add(result, 0x20))) // Store the length.
+            mstore(op, 0) // Zeroize the slot after the string.
+            mstore(0x40, add(op, 0x20)) // Allocate the memory.
+        }
+    }
 
 
 
