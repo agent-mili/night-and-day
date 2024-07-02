@@ -8,7 +8,7 @@ enum RenderDataType {
 }
 
 enum FlowerType {
-    SUNFLOWER,GENTIAN,ROSE
+    SUNFLOWER,GENTIAN,ROSE, MOONFLOWER
 }
 
 
@@ -29,6 +29,13 @@ enum SkylineType {
 
 enum MotifType {
     SIGHT_SEEING, BEACH, SKYSCRAPER, LANDSCAPE
+}
+
+struct FlowerParts {
+    string  back;
+    string  front;
+    string  blossom;
+    string  stick;
 }
 
 

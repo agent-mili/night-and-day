@@ -84,10 +84,10 @@
             uint traitIndex = (index * 3 ) % 5;
             cityTraits.priceFeed = priceFeedAddresses[traitIndex];
 
-            string[3] memory displays = ['Crystal Ball', 'Laptop', 'Clipboard'];
-            cityTraits.displayType = (index * 2) % 3;
+            string[4] memory displays = ['Crystal Ball', 'Laptop', 'Clipboard', 'Hologram'];
+            cityTraits.displayType = (index * 2) % 4;
 
-            cityTraits.displaySVG = string.concat("<use href='#", cityTraits.displayType == 0 ? "cr" : cityTraits.displayType == 1 ? "la" : "cl", "' />");
+            cityTraits.displaySVG = string.concat("<use href='#", cityTraits.displayType == 0 ? "cr" : cityTraits.displayType == 1 ? "la" : cityTraits.displayType == 2 ? "cl" : "pr", "' />");
 
             uint cityTypes = 208949948408315176645400514316296940490473578437358986892907;
             cityTraits.skyLinetype = (cityTypes >> ((index) * 2)) & 3;
@@ -148,8 +148,7 @@
             landscapeTraits.hasRiver = (landscapeTrait & 4) == 4;
             landscapeTraits.hasOcean = (landscapeTrait & 8) == 8;
 
-            landscapeTraits.before = landscapeTraits.hasOcean ? "<use href='#l-o' />" : "";
-            landscapeTraits.before = landscapeTraits.hasMountains ? "<use href='#l-m' />" : landscapeTraits.before;
+            landscapeTraits.before = landscapeTraits.hasMountains ? "<use href='#l-m' />" : "";
 
             landscapeTraits.front = landscapeTraits.hasCity ? "<use href='#l-c' />" : "";
             landscapeTraits.front = landscapeTraits.hasRiver ? string.concat(landscapeTraits.front, "<use href='#l-r' />") : landscapeTraits.front;

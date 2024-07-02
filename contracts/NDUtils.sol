@@ -164,12 +164,12 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
     function createStandardAttributes(Motif memory motif, FlowerType flowerType) public pure returns (string memory) {
         string memory attributes;
         
-        attributes = string.concat('"attributes": [{"trait_type":"Flower","value":"', flowerType == FlowerType.ROSE ? "Rose" : flowerType == FlowerType.SUNFLOWER ? "Sunflower" : "Gentian", '"}');
+        attributes = string.concat('"attributes": [{"trait_type":"Flower","value":"', flowerType == FlowerType.ROSE ? "Rose" : flowerType == FlowerType.SUNFLOWER ? "Sunflower" :flowerType == FlowerType.GENTIAN  ? "Gentian": "Moonflower", '"}');
         attributes = string.concat(attributes, ',{"trait_type":"Latitude","value":"', renderDecimal(motif.lat, 6), '"}');
         attributes = string.concat(attributes, ',{"trait_type":"Longitude","value":"', renderDecimal(motif.lng, 6), '"}');
         attributes = string.concat(attributes, ',{"trait_type":"Heading","value":"', motif.heading.toStringSigned(), '"}');
-        attributes = string.concat(attributes, ',{"trait_type":"Motif Type","value":"', motif.motifType == MotifType.SIGHT_SEEING ? "Sight Seeing" : motif.motifType == MotifType.BEACH ? "Beach" : motif.motifType == 
-        MotifType.SKYSCRAPER ? "Sky Scraper" : "Landscape", '"}');
+        attributes = string.concat(attributes, ',{"trait_type":"Motif Type","value":"', motif.motifType == MotifType.SIGHT_SEEING ? "Attraction" : motif.motifType == MotifType.BEACH ? "Beach" : motif.motifType == 
+        MotifType.SKYSCRAPER ? "City" : "Landscape", '"}');
 
         return attributes;
     }
@@ -260,12 +260,12 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
             );
         }
 
-        return replaceFirst(svgTemplate, string.concat("<!--", placeholder, "-->"), useTags);
+        return replaceFirst(svgTemplate,placeholder, useTags);
     } 
 
 
     // is used for flowers and few plants
-    function setUseRotations(string memory svg, string memory ref, int[] memory rotations, int16[2] memory rotationAnchor) public pure returns (string memory) {
+    function setUseRotations(string memory svg, string memory ref, string memory placeHolder, int[] memory rotations, int16[2] memory rotationAnchor) public pure returns (string memory) {
         string memory useTags = "";
 
         for (uint256 i = 0; i < rotations.length; i++) {
@@ -283,20 +283,19 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
             );
         }
 
-        return replaceFirst(svg, string.concat('<!--', ref, '-->'), useTags);
+        return replaceFirst(svg, placeHolder, useTags);
     }
 
-      function renderFinalNFT(string memory assetsSVG, MotifType motifType, string memory motifSVG, SVGData memory svgData,  string memory maskedAssetsSVG) public view returns (string memory) {
+      function renderFinalNFT(string memory assetsSVG, uint tokenId, string memory motifSVG, SVGData memory svgData,  string memory maskedAssetsSVG) public view returns (string memory) {
 
 
-        string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
         string memory topSVG = 
         string.concat(
         '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1080 1080">'
         '<filter id="makeBlack">'
         '<feColorMatrix type="matrix"'
         ' values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" /></filter>'
-        '<filter id="silc" x="0" y="0" width="200%" height="200%">'
+        '<filter id="silh', tokenId.toString() ,'" x="0" y="0" width="200%" height="200%">'
         '<feFlood flood-color="', svgData.waterColor,'" result="flood" />'
         '<feComposite in="flood" in2="SourceAlpha" operator="in"/>'
         '</filter>');
@@ -307,11 +306,11 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
         string memory skyBGSVG = string.concat('<rect fill="', svgData.skyColor, '" width="1080" height="1080"/>');
         string memory skyBehind = string.concat(topSVG, skyBGSVG , svgData.sunSVG, svgData.cloudsSVG, svgData.skySceneSVG, assetsSVG);
 
-        string memory moonMask = string.concat('<mask id="moonMask', motifTypeString, '"><rect fill="#fff" width="1080" height="1080"/>','<use href="#motif', motifTypeString, '" filter="url(#makeBlack)"/></mask>', svgData.nightSVG , svgData.moonSVG ,'</svg>');
+        string memory moonMask = string.concat('<mask id="moonMask', tokenId.toString(), '"><rect fill="#fff" width="1080" height="1080"/>','<use href="#motif', tokenId.toString(), '" filter="url(#makeBlack)"/></mask>', svgData.nightSVG , svgData.moonSVG ,'</svg>');
         string memory lightHouse = '<use href="#lighthouse" filter="url(#makeBlack)"/>';
-        string memory nightMask = string.concat('</g><mask id="nightMask', motifTypeString, '">','<rect fill="#fff" width="1080" height="1080"/>', motifType == MotifType.SIGHT_SEEING ? lightHouse : '', maskedAssetsSVG ,'</mask>');
+        string memory nightMask = string.concat('</g><mask id="nightMask', tokenId.toString(), '">','<rect fill="#fff" width="1080" height="1080"/>', tokenId == 1 ? lightHouse : '', maskedAssetsSVG ,'</mask>');
 
-        string memory outputSVG = string.concat(skyBehind, '<g id="motif', motifTypeString, '">', motifSVG, nightMask, moonMask );
+        string memory outputSVG = string.concat(skyBehind, '<g id="motif', tokenId.toString(), '">', motifSVG, nightMask, moonMask );
 
         return outputSVG;
 

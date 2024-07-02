@@ -220,7 +220,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         return "";
     }
 
-        function renderMoon(MotifType motifType, int heading, int skyHeight, int azimuth, int altitude, int pa, int fraction, int angle ) public pure returns (string memory) {
+        function renderMoon(uint tokenId, int heading, int skyHeight, int azimuth, int altitude, int pa, int fraction, int angle ) public pure returns (string memory) {
 
             int moonWidthInDegree =viewingRangeHorizontal  * 1e4 / skyWidth * 58;
             int moonHeightInDegree = viewingRangeVertical * 1e4 / skyHeight * 58;
@@ -246,8 +246,7 @@ uint256 constant TO_DEG = 57295779513224454144;
                 moonRadius = moonRadius / 1e2;
                 terminatorRadius = terminatorRadius / 1e2;
                 zenitMoonangle = zenitMoonangle / 1e2;
-                string memory motifTypestring = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
-                string memory moon = string.concat('<g mask="url(#moonMask', motifTypestring ,')"><path transform="rotate(', NDUtils.renderDecimal(zenitMoonangle), ' ', NDUtils.renderDecimal(x + moonRadius), ' ', 
+                string memory moon = string.concat('<g mask="url(#moonMask', tokenId.toString() ,')"><path transform="rotate(', NDUtils.renderDecimal(zenitMoonangle), ' ', NDUtils.renderDecimal(x + moonRadius), ' ', 
                 NDUtils.renderDecimal(y), ')" stroke="white" shapeRendering="geometricPrecision" fill="white" d="M ', NDUtils.renderDecimal(x), ' ', NDUtils.renderDecimal(y), ' a ',
                 NDUtils.renderDecimal(moonRadius), ' ', NDUtils.renderDecimal(moonRadius), ' 0 0 1 ', NDUtils.renderDecimal(moonRadius * 2), ' 0 a ', NDUtils.renderDecimal(moonRadius), ' ',
                 NDUtils.renderDecimal(terminatorRadius), ' 0 ', isCrescent ? '1' : '0', ' ', isGibbos ? '1' : '0', ' ', NDUtils.renderDecimal(-moonRadius * 2), ' 0 z"></path></g>');
@@ -260,7 +259,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         return "";
     }
 
-       function applyNight(int256 altitude, MotifType motifType) public pure returns (string memory) {
+       function applyNight(int256 altitude, uint tokenId) public pure returns (string memory) {
         // Konstanten in e18
         int256 altitudeThresholdForFullNight = -180000;
         int256 opacityFactor = 22 * 1e2;
@@ -277,10 +276,9 @@ uint256 constant TO_DEG = 57295779513224454144;
        
         string memory opacityString = NDUtils.renderDecimal(int256(opacity));
 
-        string memory motifTypeString = motifType == MotifType.SIGHT_SEEING ? "S" : "G";
 
         string memory night = string.concat(
-            '<rect mask="url(#nightMask', motifTypeString, ')" style="mix-blend-mode:multiply" width="1080" height="1080" fill="#0F3327" opacity="',
+            '<rect mask="url(#nightMask', tokenId.toString(), ')" style="mix-blend-mode:multiply" width="1080" height="1080" fill="#0F3327" opacity="',
             opacityString,
             '"></rect>'
         );
@@ -356,7 +354,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         return diffAngle;
     }
 
-     function renderFlower(string memory svg, int256 azimuth, int256 altitude, int256 heading, FlowerType flowerType, string memory blossom, string memory stick, string memory back, string memory front, bool hasPot) public pure returns (string memory) {
+     function renderFlower(string memory svg, int256 azimuth, int256 altitude, int256 heading, FlowerType flowerType, FlowerParts memory flowerParts, bool hasPot) public pure returns (string memory) {
         
         
         altitude = altitude > 8500 ? int(8500) : altitude;
@@ -364,24 +362,24 @@ uint256 constant TO_DEG = 57295779513224454144;
         angle /= 1e2;
         string memory flowerSvg;
 
-        string memory transformContainer = '<g style="transform: rotateY(<!--azi-->) rotateX(<!--alt-->); transform-box:fill-box;transform-origin:center">';
+        string memory transformContainer = '<g style="transform: rotateY($azi) rotateX($alt); transform-box:fill-box;transform-origin:center">';
 
 
         if (altitude <= 0) {
-            flowerSvg = string.concat(stick, transformContainer, blossom, front , '</g>');
+            flowerSvg = string.concat(flowerParts.stick, transformContainer, flowerParts.blossom, flowerParts.front , '</g>');
 
-            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--azi-->", "0");
-            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--alt-->", "0");
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azi", "0");
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$alt", "0");
 
             if(flowerType == FlowerType.GENTIAN) {
-                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--aziStick-->", "0");
+                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azis", "0");
             }
         } else {
             if (NDUtils.abs(angle) >= 9000) {
-                flowerSvg = string.concat(stick, transformContainer, blossom, front, '</g>');
+                flowerSvg = string.concat(flowerParts.stick, transformContainer, flowerParts.blossom, flowerParts.front, '</g>');
 
             } else {
-                flowerSvg = string.concat(transformContainer, blossom, back, '</g>' ,stick);
+                flowerSvg = string.concat(transformContainer, flowerParts.blossom, flowerParts.back, '</g>' ,flowerParts.stick);
 
             }
 
@@ -404,17 +402,20 @@ uint256 constant TO_DEG = 57295779513224454144;
                 angle = -2750;
             } 
 
-            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--azi-->", string.concat(NDUtils.renderDecimal(angle), "deg"));
-            flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--alt-->", string.concat(NDUtils.renderDecimal(altitude), "deg"));
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azi", string.concat(NDUtils.renderDecimal(angle), "deg"));
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$alt", string.concat(NDUtils.renderDecimal(altitude), "deg"));
             if(flowerType == FlowerType.GENTIAN) {
-                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "<!--aziStick-->", string.concat(NDUtils.renderDecimal(angle), "deg"));
+                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azis", string.concat(NDUtils.renderDecimal(angle), "deg"));
             }
         }
 
         if(hasPot) {
             if (flowerType == FlowerType.ROSE) {
                 flowerSvg = string.concat('<g transform="translate(0 32)"><polygon fill="#d7e0a7" points="-7 -73 7 -73 19 3 -19 3 -7 -73" />', flowerSvg, '</g>');
-            } else {
+            } else if(flowerType == FlowerType.MOONFLOWER) {
+                 flowerSvg = string.concat('<g transform="translate(0 32)">', flowerSvg, '</g>');
+            } 
+            else {
                 flowerSvg = string.concat('<rect y="-15"  fill="#d7e0a7" x="-25"  width="50" height="50" /><rect y="-5" fill="#aa7035" width="30" height="10" x="-15" />', flowerSvg);
             }
         } 
@@ -549,7 +550,7 @@ uint256 constant TO_DEG = 57295779513224454144;
  
 
             string memory lightHouse =  string.concat('<polygon opacity="0.2" fill="#fff" points="' , xDec, ',', yDec, ',0,0,', xDec,',-',yDec, '"/>');
-            return NDUtils.replaceFirst(svg, "<!--light-->", lightHouse);
+            return NDUtils.replaceFirst(svg, "$li", lightHouse);
 
 
         }
@@ -590,7 +591,7 @@ uint256 constant TO_DEG = 57295779513224454144;
 
         string memory shadowSVG = string.concat('<rect x="817" y="664" opacity="0.6" fill="#649624" width="3.6" height="', NDUtils.renderDecimal(shadowLength) ,'" transform="rotate(', NDUtils.renderDecimal(angle), ' 819 664)"/>');
     
-        svg = NDUtils.replaceFirst(svg, "$s", shadowSVG);
+        svg = NDUtils.replaceFirst(svg, "$sh", shadowSVG);
         return svg;
     }
 
