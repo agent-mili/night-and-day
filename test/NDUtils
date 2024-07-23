@@ -1,0 +1,478 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.25;
+
+import "forge-std/Test.sol";
+
+import "../contracts/NDUtils.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
+
+contract NDUtilsTest is Test {
+    // NDUtils public ndUtils;
+
+    using Strings for uint256;
+using Strings for int256;
+using Strings for int16;
+
+mapping(uint => mapping(uint => uint256)) public towelCombo;
+mapping(uint => mapping(uint => uint256)) public shortCombo;
+mapping(uint => mapping(uint => uint256)) public shirtCombo;
+
+
+uint8[] catColorCityWeightings = [36, 30, 25, 8];
+
+uint8[] catColorLandscapeWeightings = [38, 36, 20, 5];
+
+uint8[] jellyFishWeightings = [38, 32, 25,4];
+
+uint8[] flowerWeightings = [40, 32, 16, 12];
+
+uint8[] nftWeightings = [0, 1, 10,9, 12, 11, 10, 10, 13, 11, 11, 13, 16, 11, 11, 8, 13, 6, 13];
+
+uint8[] hatWeightings = [0,15,22,19,12,17,15];
+
+uint8[] shirtColorWeightings = [24,41,34];
+
+uint8[] shirtPatternWeightings = [26,40,14,5,14];
+
+uint8[] displayDevices = [38,41,17,3];
+
+uint8[] chartTypeWeightings = [21,44,14,14,8];
+
+uint8[] shortColorWeightings = [33,33,33];
+
+uint8[] shortPatternWeightings = [23,40,20,3,13];
+
+uint8[] towelColors = [24,22,28,25];
+
+uint8 [] towelPatterns = [21,78];
+
+
+
+    function setUp() public {
+    //    ndUtils = new NDUtils();
+    }
+
+//     function testRandomNum() public {
+//         uint256[10000] memory counts;
+
+//         for (uint256 i = 19; i <= 118; i++) {
+//             //uint256 result = NDUtils.randomNum(string.concat("skin", i.toString()), 0,18);
+//             uint j = i * i;
+//              uint256 result = NDUtils.randomNum(string.concat('Flower', i.toString()), 0,9999);
+//             console.log("RandomNum");
+//             console.logUint(result);
+//             //     uint256 result = NDUtils.randomNum(i, 0,2);
+//             counts[result]++;
+//         }
+
+//         //loggen der counts
+//  /*        console.log("Counts:");
+//         for (uint256 i = 0; i < counts.length; i++) {
+//             console.log("Index:");
+//             console.logUint(i);
+//             console.log("Value:");
+//             console.logUint(counts[i]);
+//         } */
+
+//        uint[10] memory numIntervals;
+
+//         //uint intervalLength = 0;
+//         uint256 intervalLength = counts.length / numIntervals.length;
+
+//         // Überprüfen, ob die Zufallszahlen gleichmäßig in den intervallen verteilt sind
+//         // z..B. im intervall 1-10, 11-20, 21-30, ...
+//         for (uint256 i = 0; i < counts.length; i++) {
+//             numIntervals[i / intervalLength] += counts[i];
+//         }
+
+//         //loggen der intervals
+//         console.log("Intervals:");
+//         for (uint256 i = 0; i < numIntervals.length; i++) {
+//             console.log("Index:");
+//             console.logUint(i);
+//             console.log("Value:");
+//             console.logUint(numIntervals[i]);
+//         }
+
+
+
+
+
+
+
+        
+//         uint256 tolerance = 5; // Erlaubte Abweichung
+
+//         // Überprüfen, ob die Zufallszahlen gleichmäßig verteilt sind
+//         for (uint256 i = 0; i < counts.length; i++) {
+//             uint256 expected = 300 / counts.length;
+//             uint256 diff = counts[i] > expected ? counts[i] - expected : expected - counts[i];
+//             assertTrue(diff < tolerance, counts[i].toString());
+//         }
+       
+        
+//     }
+
+    function usew(uint8[] memory w,uint256 i) internal pure returns (uint8) {
+    uint8 ind=0;
+    uint256 j=uint256(w[0]);
+    while (j<i) {
+      ind++;
+      j+=uint256(w[ind]);
+    }
+    return ind;
+  }
+
+
+    function testFlowerDistribution () public view{
+        uint8[4] memory indexes;
+
+
+        for (uint256 i = 19; i < 319; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Flower', i.toString()), 0,99);
+            indexes[usew(flowerWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes Flower:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testNFTDistribution () public view {
+        uint8[19] memory indexes;
+
+
+        for (uint256 i = 19; i < 319; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('NFT', i.toString()), 0,189);
+            indexes[usew(nftWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes nft:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index:");
+            console.logUint(i);
+            console.log("Value:");
+           console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testHatDistribution () public view {
+        uint8[7] memory indexes;
+
+
+        for (uint256 i = 219; i < 319; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Hat', i.toString()), 0,99);
+            indexes[usew(hatWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes hat:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index Hat:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testShirtColorDistribution () public {
+        uint8[3] memory indexes;
+        uint8[5] memory patternIndexes;
+
+
+        for (uint256 i = 219; i < 319; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('ShirtColor', i.toString()), 0,99);
+            uint256 result2 = NDUtils.randomNum(string.concat('ShirtPattern', i.toString()), 0,99);
+            uint indexColor = usew(shirtColorWeightings, result);
+            uint indexPattern = usew(shirtPatternWeightings, result2);
+            indexes[indexColor]++;
+            patternIndexes[indexPattern]++;
+            shirtCombo[indexColor][indexPattern]++;
+        }
+
+        for (uint8 i = 0; i < indexes.length; i++) {
+            for (uint8 j = 0; j < patternIndexes.length; j++) {
+                if (shirtCombo[i][j] > 0) {
+                    console.log("Shirt Combination index: ");
+                    console.log("Color:");
+                    console.logUint(i);
+                    console.log("Pattern:");
+                    console.logUint(j);
+                    console.log("Value: ");
+                    console.logUint(shirtCombo[i][j]);
+                }
+            }
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index ShirtColor:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testShirtPatternDistribution () public view {
+        uint8[5] memory indexes;
+
+
+        for (uint256 i = 219; i < 319; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('ShirtPattern', i.toString()), 0,99);
+            indexes[usew(shirtPatternWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index ShirtPattern:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testdisplayDevicesDistribution () public view {
+        uint8[4] memory indexes;
+
+
+        for (uint256 i = 119; i < 219; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Display', i.toString()), 0,99);
+            indexes[usew(displayDevices, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index DisplayDevices:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testChartTypeDistribution () public view {
+        uint8[5] memory indexes;
+
+
+        for (uint256 i = 119; i < 219; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Chart', i.toString()), 0,99);
+            indexes[usew(chartTypeWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index ChartType:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testShortColorWeightingsDistribution () public {
+        
+        uint8[3] memory indexes;
+         //resuse shirt patterns
+        uint8[5] memory patternIndexes;
+
+
+        for (uint256 i = 19; i < 119; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('ShortColor', i.toString()), 0,99);
+            uint256 result2 = NDUtils.randomNum(string.concat('ShortPattern', i.toString()), 0,99);
+            uint indexColor = usew(shortColorWeightings, result);
+            uint indexPattern = usew(shortPatternWeightings, result2);
+            indexes[indexColor]++;
+            patternIndexes[indexPattern]++;
+            shortCombo[indexColor][indexPattern]++;
+        }
+
+        for (uint8 i = 0; i < indexes.length; i++) {
+            for (uint8 j = 0; j < patternIndexes.length; j++) {
+                if (shortCombo[i][j] > 0) {
+                    console.log("Short Combination index: ");
+                    console.log("Color:");
+                    console.logUint(i);
+                    console.log("Pattern:");
+                    console.logUint(j);
+                    console.log("Value: ");
+                    console.logUint(shortCombo[i][j]);
+                }
+            }
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index ShortColor:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testShortPatternWeightingsDistribution () public view {
+        //resuse shirt patterns
+        uint8[5] memory indexes;
+
+
+        for (uint256 i = 19; i < 119; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('ShortPattern', i.toString()), 0,99);
+            indexes[usew(shortPatternWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index ShortPattern:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testTowelColorWeightingsDistribution () public  {
+        uint8[4] memory indexes;
+        uint8[2] memory patternIndexes;
+        // ann array of both arrays
+
+        for (uint256 i = 19; i < 119; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('TowelColor', i.toString()), 0,99);
+            uint256 result2 = NDUtils.randomNum(string.concat('TowelPattern', i.toString()), 0,99);
+
+            uint indexColor = usew(towelColors, result);
+            uint indexPattern = usew(towelPatterns, result2);
+            indexes[indexColor]++;
+            patternIndexes[indexPattern]++;
+            towelCombo[indexColor][indexPattern]++;
+        }
+
+
+         for (uint8 i = 0; i < indexes.length; i++) {
+            for (uint8 j = 0; j < patternIndexes.length; j++) {
+                if (towelCombo[i][j] > 0) {
+                    console.log("Combination index: ");
+                    console.log("Color:");
+                    console.logUint(i);
+                    console.log("Pattern:");
+                    console.logUint(j);
+                    console.log("Value: ");
+                    console.logUint(towelCombo[i][j]);
+                }
+            }
+        }
+
+
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index TowelColor:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testTowelPatternWeightingsDistribution () public view {
+       
+            uint8[2] memory indexes;
+
+        for (uint256 i = 19; i < 119; i++) {
+             uint256 result = NDUtils.randomNum(string.concat('TowelPattern', i.toString()), 0,99);
+            indexes[usew(towelPatterns, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index TowelPattern:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+    }
+
+    function testJellyFishWeightingsDistribution () public view {
+        uint8[4] memory indexes;
+
+
+        for (uint256 i = 19; i < 119; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Jelly', i.toString()), 0,99);
+            indexes[usew(jellyFishWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index JellyFish:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+        assertTrue(true, "Test passed");
+
+    }
+
+    function testCatColorWeightingsDistribution () public view {
+        uint8[4] memory indexes;
+
+
+        for (uint256 i = 119; i < 219; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Cat', i.toString()), 0,99);
+            indexes[usew(catColorCityWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index CatColor:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+
+        assertTrue(true, "Test passed");
+    }
+
+    function testCatColorWeightingsDistribution2 () public view {
+        uint8[4] memory indexes;
+
+
+        for (uint256 i = 219; i < 319; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Cat', i.toString()), 0,99);
+            indexes[usew(catColorLandscapeWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index CatColor2:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+
+        assertTrue(true, "Test passed");
+
+    }
+}

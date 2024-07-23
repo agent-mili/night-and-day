@@ -16,10 +16,16 @@ export default buildModule("NaDDeployment", (m) => {
 
   
     // Deploye den GenericMotifs Contract
-    const genericMotif = m.contract("GenericMotifs", []);
+    const genericMotif = m.contract("GenericMotifs", [], {
+      libraries: {
+        NDUtils: ndUtils,
+      },
+    
+    });
     const genericMotifSVG = m.contract("GenericMotifsSVG", []);
   
     // Deploye Motif Contracts
+    //const assets = m.contract("Assets", []);
     const motif0 = m.contract("Motifs0", []);
     const motif1 = m.contract("Motifs1", []);
   
@@ -33,6 +39,7 @@ export default buildModule("NaDDeployment", (m) => {
       libraries: {
         NDDecoder: ndDecoder,
         NDUtils: ndUtils,
+  //      Assets: assets,
       },
       after:[  genericMotif,
         genericMotifSVG,

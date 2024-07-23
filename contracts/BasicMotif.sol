@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4 <0.9.0;
 
+enum ColorRenderType {
+    HUMAN,BIRD,SHIP
+}
+
 
 enum RenderDataType {
 
@@ -8,7 +12,7 @@ enum RenderDataType {
 }
 
 enum FlowerType {
-    SUNFLOWER,GENTIAN,ROSE, MOONFLOWER
+    SUNFLOWER,ROSE,GENTIAN, MOONFLOWER
 }
 
 
@@ -95,12 +99,16 @@ struct BeachTraits {
     string beachColor;
     string skinColor;
     string shortsColor;
+    string shortsColorAttribute;
     string towelColor;
+    string towelColorAttribute;
     uint accessoireType;
     string shortsPattern;
     string towelPattern;
     string shortsSVG;
     string towelSVG;
+    uint jellyTypeId;
+    string jellyColor;
 
 }
 
@@ -109,11 +117,14 @@ struct CityTraits {
     address priceFeed;
     string skylineSVG;
     string displaySVG;
+    string tableSVG;
     uint displayType;
     uint skyLinetype;
     bool isCoastel;
     uint accessoireType;
     string tableColor;
+    uint catTypeId;
+    string catColor;
 }
 
 
@@ -127,13 +138,18 @@ struct LandscapeTraits {
     bool hasCity;
     string skinColor;
     string shirtColor;
+    string shirtColorAttribute;
     string shirtPattern;
     string hat;
     string pantsColor;
+    string furnitureColor;
+    string furnitureSVG;
     bool hasRiver;
     bool hasMountains;
     bool hasOcean;
     string artistSVG;
+    uint catTypeId;
+    string catColor;
 
 }
 
@@ -149,6 +165,29 @@ struct SVGData {
         string skySceneSVG;
 
      }
+
+          struct SunMoon {
+        uint sunrise;
+        uint sunset;
+        int altitude;
+        int azimuth;
+        int moonAzimuth;
+        int moonAltitude;
+        int parallacticAngle;
+        int fraction;
+        int angle;
+     }
+
+
+    struct SceneElement {
+        uint y;
+        int x;
+        int xScale;
+        string svg;
+        string posSalt;
+        string decimalScaleX;
+        string decimalScaleY;
+    }
 
 
 interface IMotifData {

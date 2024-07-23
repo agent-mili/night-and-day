@@ -118,21 +118,41 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
 
 
 
-    function setRandomColor(string memory svg, string memory salt) public pure returns (string memory) {
+    function createElementAndSetColor(SceneElement memory sceneElement, string memory salt, string memory assetName) public pure returns (string memory) {
 
+        bool isPerson = Strings.equal(assetName, "person");
+        bool isYacht = Strings.equal(assetName, "yacht") || Strings.equal(assetName, "ballon");
+        bool isBird = Strings.equal(assetName, "bird") || Strings.equal(assetName, "bird-f");
+        string memory colorStr = " ";
 
-        uint256 rdIndex = randomNum(salt, 0,  16);
-        string memory rdColor = getColorByIndex(rdIndex);
-        return replaceFirst(svg, "<!--rdColor-->", rdColor);
+        if(isBird) {
+            uint rdIndex = randomNum(salt, 27, 29);
+            colorStr = string.concat(' fill="', getColorByIndex(rdIndex), '" ');
+        }
+        else if (isYacht) {
+            uint rdIndex = randomNum(salt, 0, 16);
+            colorStr = string.concat(' fill="', getColorByIndex(rdIndex), '" ');
+        }
+        else if (isPerson) {
+            uint rdIndex1 = randomNum(salt, 0, 16);
+            uint rdIndex2 = randomNum(salt, 17, 26);
+            colorStr = string.concat(' fill="', getColorByIndex(rdIndex1), '"', ' stroke="', getColorByIndex(rdIndex2), '" ');
+            
+        }
+
+        string memory asset  = string.concat('<use href="#',assetName, '"', colorStr,  'transform="translate(', sceneElement.x.toStringSigned(), ',', sceneElement.y.toString(), ') scale(', sceneElement.decimalScaleX, ' '  , sceneElement.decimalScaleY, ')"/>');
+
+        return asset;
     }
 
      function getColorByIndex(uint256 index) internal pure returns (string memory) {
-        bytes6[17] memory rdColors = [
+        bytes6[30] memory rdColors = [
             bytes6('ffffff'), 'dbd8e0', '684193', 'e3cce5', 'fff6cc', 
             '649624', '9bb221', 'c3d17c', 'ffd700', 'ffe766', 
             'fcd899', 'f29104', 'e6342a', 'e94f1c', 'be1823', 
-            'aa7034', 'e94e1b'
-        ];
+            'aa7034', 'e94e1b', bytes6("ffcabf"),bytes6("ffcc99"),bytes6("e6ae76"),bytes6("cc8f52"),bytes6("bb7f43"),bytes6("966329"),bytes6("925b2d"),bytes6("7a4625"),bytes6("ffcc73"),bytes6("ffcc4d"),
+            'f37c00', 'ff5d6a', 'cb0fe0' ];
+    
 
         require(index < rdColors.length, "out of index");
         return string(abi.encodePacked("#", rdColors[index]));
@@ -173,6 +193,112 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
 
         return attributes;
     }
+
+ function computeStarttime(
+        uint timestamp,
+        AssetInScene memory asset,
+        string memory salt,
+        uint sunrise,
+        uint sunset,
+        bool isMoving
+    ) public pure returns (uint[] memory) {
+
+ 
+         uint visibleCount = 0;
+         uint[] memory visibleStartTimes;
+        
+        {
+        uint minStartTime = timestamp - asset.maxDuration - asset.possibleOffset;
+        uint maxStartTime = timestamp;
+         bool isTimeFrameValid = true;
+          if (asset.dayTime != DAYTIME.NIGHT_AND_DAY) {
+
+            sunrise = sunrise / 1e18;
+            sunset = sunset / 1e18;
+
+            (minStartTime, maxStartTime, isTimeFrameValid) = adjustTimeStampsForAssetVisibility(minStartTime, maxStartTime, sunrise, sunset, asset.dayTime, 0, asset.maxDuration);
+            if (!isTimeFrameValid) {
+                return new uint[](0);
+            }
+        }  
+    
+        
+        uint lastCheckTimestamp = maxStartTime - (maxStartTime % asset.checkInterval);
+        uint firstCheckTimestamp = minStartTime - (minStartTime % asset.checkInterval);
+        uint checkCount = uint(lastCheckTimestamp - firstCheckTimestamp) / uint(asset.checkInterval) + 1;
+
+        visibleStartTimes = new uint[](checkCount);
+       
+
+         
+         for (uint i = 0; i < checkCount; i++) {
+            uint checkTimestamp = uint(firstCheckTimestamp) + i * uint(asset.checkInterval);
+            string memory startTimeSalt = string.concat(salt, checkTimestamp.toString());
+
+            if (randomNum(startTimeSalt, 0, 100) < uint(asset.probability)) {
+            
+                uint startTime = uint(checkTimestamp) +randomNum(startTimeSalt, 0, uint(asset.possibleOffset));
+                uint endTime = startTime + randomNum(startTimeSalt, uint(asset.minDuration), uint(asset.maxDuration));
+                if (startTime <= timestamp && endTime +  (isMoving? (asset.minDuration / 3) : 0) >= timestamp && uint(startTime) >= uint(minStartTime)) {
+                    visibleStartTimes[visibleCount] = startTime;
+                    visibleCount++;
+                }
+            }
+        } 
+        }
+        uint[] memory actualVisible = new uint[](visibleCount);
+        for (uint i = 0; i < visibleCount; i++) {
+            actualVisible[i] = visibleStartTimes[i];
+        }
+
+        return actualVisible;
+    }
+
+    function adjustTimeStampsForAssetVisibility(
+        uint256 minStartTime,
+        uint256 maxStartTime,
+        uint256 sunriseTime,
+        uint256 sunsetTime,
+        DAYTIME timeOfDayVisibility,
+        uint256 tolerance,
+        uint256 maxDuration
+    ) public pure returns (uint256, uint256, bool) {
+
+  
+        bool isTimeFrameValid = true;
+
+        // Anpassung von minStartTime basierend auf dem Asset-Typ
+        if (timeOfDayVisibility == DAYTIME.DAY && minStartTime < sunriseTime) {
+            minStartTime = sunriseTime;
+        } else if (timeOfDayVisibility == DAYTIME.NIGHT && minStartTime > sunsetTime) {
+            minStartTime = sunsetTime;
+        }
+
+        // Berechnung der Toleranzzeit
+        uint256 toleranceTime = maxDuration * tolerance / 100;
+
+        // Anpassung von maxStartTime und Überprüfung der Gültigkeit des Zeitrahmens
+        if (timeOfDayVisibility == DAYTIME.DAY) {
+            uint256 latestStartTimeForDayAsset = sunsetTime - maxDuration + toleranceTime;
+            if (maxStartTime > latestStartTimeForDayAsset) {
+                maxStartTime = latestStartTimeForDayAsset;
+            }
+            if (minStartTime > maxStartTime) {
+                isTimeFrameValid = false;
+            }
+        } else if (timeOfDayVisibility == DAYTIME.NIGHT) {
+            uint256 latestStartTimeForNightAsset = sunriseTime - maxDuration + toleranceTime;
+            if (maxStartTime > latestStartTimeForNightAsset) {
+                maxStartTime = latestStartTimeForNightAsset;
+            }
+            if (minStartTime > maxStartTime) {
+                isTimeFrameValid = false;
+            }
+        }
+
+        return (minStartTime, maxStartTime, isTimeFrameValid);
+    }
+
 
 
 
@@ -262,6 +388,8 @@ function renderDecimal(int256 value, uint decimals) public pure returns (string 
 
         return replaceFirst(svgTemplate,placeholder, useTags);
     } 
+
+    
 
 
     // is used for flowers and few plants

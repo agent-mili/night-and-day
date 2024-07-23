@@ -349,7 +349,7 @@ contract ERC721Reservations is ERC721, ReentrancyGuard, IERC2981 {
     constructor(string memory name_, string memory symbol_)
         ERC721(name_, symbol_)
     {
-        premint();
+       // premint();
     }
 
     function premint() private {

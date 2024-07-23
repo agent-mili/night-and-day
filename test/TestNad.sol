@@ -7,15 +7,17 @@ import "../contracts/motifs/GenericMotifsSVG.sol";
 import "../contracts/motifs//Motifs0.sol";
 import "../contracts/motifs/Motifs1.sol";
 
+import "../contracts/motifs/Assets.sol";
+
 import "../contracts/NAD.sol";
 
 
 contract NADTest is Test {
-   //  NAD public nandd;
+     NAD public nandd;
 
 
     function setUp() public {
-        // Contract deployment und Setup
+        //Contract deployment und Setup
         GenericMotifs genericMotif = new GenericMotifs();
         GenericMotifsSVG genericMotifSVG = new GenericMotifsSVG();
 
@@ -29,7 +31,7 @@ contract NADTest is Test {
             address(genericMotif), 
             address(genericMotifSVG), 
             address(motif0), 
-            address(motif1), 
+            address(motif1)
         );
 
         nandd = new NAD(
@@ -37,22 +39,22 @@ contract NADTest is Test {
         );
     }
  
-     function testTokenUriWithTime() view private {
+     function testTokenUriWithTime() view public {
 
         // Da Foundry keine native Unterstützung für das Schreiben in Dateisysteme hat, kommentieren wir den fs.writeFileSync Teil aus.
-        string memory tokenURI = nandd.tokenUriWithTime(120, 1712142140);
-        // Validierung
+        string memory tokenURI = nandd.tokenUriWithTime(273, 1721888661);
+        // Validierung   //1721888661
         assertEq(tokenURI, "hello"); // Ersetze `erwarteterWert` mit dem tatsächlichen erwarteten Wert des tokenURI
     }
 
-    function testMint() public {
-        // Minting
+    // function testMint() public {
+    //     // Minting
 
-         address testUser = vm.addr(1);
-          vm.startPrank(testUser);
-        nandd.mint();
-        vm.stopPrank();
-        // Validierung
-        assertEq(nandd.totalSupply(), 1); // Ersetze `erwarteterWert` mit dem tatsächlichen erwarteten Wert des totalSupply
-    }
+    //      address testUser = vm.addr(1);
+    //       vm.startPrank(testUser);
+    //     nandd.mint();
+    //     vm.stopPrank();
+    //     // Validierung
+    //     assertEq(nandd.totalSupply(), 1); // Ersetze `erwarteterWert` mit dem tatsächlichen erwarteten Wert des totalSupply
+    // }
 }

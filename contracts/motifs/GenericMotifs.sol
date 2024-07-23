@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
     pragma solidity ^0.8.20;
     import "../BasicMotif.sol";
+    import "../NDUtils.sol";
+    import "@openzeppelin/contracts/utils/Strings.sol";
+
+    import "@openzeppelin/contracts/utils/Strings.sol";
     contract GenericMotifs {
+
+        using Strings for uint256;
+        using Strings for int256;
 
         function getGeneric(uint index) public pure returns (bytes memory, uint, uint) {
             bytes memory startIndices = hex"000000190032004d0065007a009700af00ce00e60106011f013b0158016f019001b001cf01eb020c0223023d02530268028802aa02c602e402fb0316032c0345035f037d039703b003c303d703f304060420043704510468047d049a04af04c904e204fa051f0537054d0565057a059005a205b405c905e306010618062c0643065d06750687069c06b206c906df06f7070f0727073f075307680779079407aa07c007d907f00809081f08390853086b0885089d08b308ce08e709000918092e094d096b0986099d09b209c209d109ec09fc0a0c0a1e0a310a410a4f0a610a710a840a9f0ab20ac80ae30af10b010b120b260b380b480b5e0b740b850b940ba90bc00bd00bdf0bf00bff0c0e0c1e0c320c490c5a0c6b0c800c970ca60cc10cd20ce20cf20d040d130d290d3b0d4c0d5f0d6f0d7f0d8f0d9f0daf0dc20dd30de40df40e030e140e270e390e4b0e5a0e690e790e8c0ea20eb40ec50ed50ee50ef80f0a0f1c0f340f450f550f6d0f870f980fa70fb70fca0fdc0fed0ffc100f1022103310441058106910781087109b10ab10bb10cc10df10f6111b112d114e1163117e119711b711d611f712051216122c123d124e125e1284129612ac12c412e312f4130b131d13401356136e1380139413c513d913eb13f9140a141f143614451457146a147a148a149b14ad14c414df15041517152d1541156f159d15ae15c115d115ec15fe160d1623164716741686169616a816bb16d216e216f117011712172317351746175b1770177f179317a517b517da17ec17ff181118211831184318531874188a18a018b018c918e318f9191319211934194d195f19711989";
@@ -12,6 +19,12 @@
 
             return (motifs, startIndex, endIndex);
         }
+
+        function getFlowerType(uint index) public pure returns (FlowerType) {
+
+            uint8[] memory flowerWeightings =  bytesToInt8Array(hex"2820100c");
+            return FlowerType(getWeightIndex("Flower", index, flowerWeightings));
+        }
        
 
  
@@ -19,78 +32,124 @@
 
         function getBeachTraits(uint index) public pure returns (BeachTraits memory) {
 
+            uint beachIndex = index - 19;
 
+            uint8 [] memory shortColorWeightings = bytesToInt8Array(hex"212121");
+            uint8 [] memory shortPatternWeightings = bytesToInt8Array(hex"1e1e140310");
+            uint8 [] memory towelColorWeightings = bytesToInt8Array(hex"18161c19");
+            uint8 [] memory towelPatternWeightins = bytesToInt8Array(hex"154e");
 
             BeachTraits memory beachTraits;
             uint256[2] memory beachColorIndexes = [41341480336443795834078175875216095607501858439471481496782762632714599867529,11988922190500];             
             bytes6[6] memory beachColors = [bytes6("ffa0e7"),bytes6("9bb224"),bytes6("4b3d66"),bytes6("ffd700"),bytes6("fff5bf"),bytes6("ffdef6")];
             string [6] memory beachColorTraits = ["Pink", "Green", "Black", "Gold", "White", "Cream"];
 
-            uint traitIndex = (index * 3) / 255;
-            uint traitPos = (index * 3) % 255;
+            uint traitIndex = (beachIndex * 3) / 255;
+            uint traitPos = (beachIndex * 3) % 255;
 
 
 
             uint beachColorIndex = beachColorIndexes[traitIndex] >> traitPos & 7;
             beachTraits.beachColor =  string(abi.encodePacked("#",beachColors[beachColorIndex]));
 
-          
-            bytes6[5] memory shortsColors = [bytes6("ac2532"),bytes6("543e85"),bytes6("2d8fab"),bytes6("46ad47"),bytes6("ad8430")];
-            traitIndex = (index * 2) % 5;
-            beachTraits.shortsColor = string(abi.encodePacked("#",shortsColors[traitIndex]));
+            bytes6[4] memory jellyColors = [bytes6("4d6aff"),bytes6("80ff8a"),bytes6("ffff66"),bytes6("ff8080")];
+            uint8[] memory jellyFishWeightings =  bytesToInt8Array(hex"26201904");
+            traitIndex = getWeightIndex("Jelly", index, jellyFishWeightings);
 
-            string [4] memory shortPatterns = ["striped","polka","animal","none"];
-            traitIndex = (index * 2) % 4;
+            beachTraits.jellyColor = string(abi.encodePacked("#",jellyColors[traitIndex]));
+            beachTraits.jellyTypeId = traitIndex + 18;
+
+
+          
+           
+            traitIndex = getWeightIndex("ShortColor", index, shortColorWeightings) + 0;
+            beachTraits.shortsColor = getTraitColor(traitIndex);
+
+            string [5] memory shortPatterns = ["polka","striped","animal","animal2","none"];
+            traitIndex = getWeightIndex("ShortPattern", index, shortPatternWeightings);
 
             beachTraits.shortsPattern = shortPatterns[traitIndex];
 
             beachTraits.shortsSVG = string.concat("<use href='#shorts' fill='", beachTraits.shortsColor, "' /><use href='#shorts' fill='url(#", beachTraits.shortsPattern, ")' />");
-            (string memory skinColor, string memory skinColorAttribute) = getSkinColor(index);
+            string memory skinColor = getSkinColor(index);
             beachTraits.skinColor = skinColor;
-            bytes6[4] memory towelColors = [bytes6("662432"),bytes6("462b73"),bytes6("2d5c70"),bytes6("507b3b")];
-            traitIndex = (index * 2) % 3;
+
+            traitIndex = getWeightIndex("TowelColor", index, towelColorWeightings) + 3;
+            beachTraits.towelColor= getTraitColor(traitIndex);
     
-            beachTraits.towelColor = string(abi.encodePacked("#", towelColors[traitIndex]));
 
             string [2] memory towelPatterns = ["zigzag","none"];
-            traitIndex = (index * 2) % 2;
+            traitIndex = getWeightIndex("TowelColor", index, towelPatternWeightins);
             beachTraits.towelPattern = towelPatterns[traitIndex];
 
             beachTraits.towelSVG = string.concat("<use href='#towel' fill='", beachTraits.towelColor, "' /><use href='#towel' fill='url(#", beachTraits.towelPattern, ")' />");
 
-            beachTraits.attributes = string.concat(',{"trait_type":"Beach Color","value":"', beachColorTraits[beachColorIndex], '"}, {"trait_type":"Towel Color","value":"', beachTraits.towelColor, '"},{"trait_type":"Shorts Color","value":"', beachTraits.shortsColor , '"}', skinColorAttribute );
-
+            beachTraits.attributes = string.concat(getTraitAttribute("Beach Color", beachColorTraits[beachColorIndex]), getTraitAttribute("Jellyfish Color", beachTraits.jellyColor), getTraitAttribute("Shorts", string.concat(beachTraits.shortsColor, " ", beachTraits.shortsPattern)), getTraitAttribute("Towel", string.concat(beachTraits.towelColor, " ", beachTraits.towelPattern)));
             return beachTraits;
         
         }
 
+        function getCatTrait(uint index) public pure returns (uint, string memory) {
 
-        function getSkinColor(uint index) public pure returns (string memory, string memory) {
+            bytes6[4] memory catColors = [bytes6("5b4488"),bytes6("96673c"),bytes6("e57232"),bytes6("fffffe")];
 
-            bytes6[10] memory skinColors = [bytes6("ffcabf"),bytes6("ffcc99"),bytes6("e6ae76"),bytes6("cc8f52"),bytes6("#b7f43"),bytes6("966329"),bytes6("925b2d"),bytes6("7a4625"),bytes6("ffcc73"),bytes6("ffcc4d")];
-            uint skinColorIndex = (index * 3) % 10;
+            uint catTypeId;
+            string memory catColor;
+            
+            uint8[] memory catColorCityWeightings =  bytesToInt8Array(hex"241e1908");
+            uint8[] memory catColorLandscapeWeightings =  bytesToInt8Array(hex"26241405");
+            uint weightIndex;
+            weightIndex =  (index >= 219) ? getWeightIndex("Cat", index, catColorLandscapeWeightings): getWeightIndex("Cat", index, catColorCityWeightings);
+
+            catTypeId = weightIndex + 22;
+            catColor = string(abi.encodePacked("#",catColors[weightIndex]));
+
+
+            return (catTypeId, catColor);
+        }
+
+
+        function getSkinColor(uint index) public pure returns (string memory) {
+
+            bytes6[10] memory skinColors = [bytes6("ffcabf"),bytes6("ffcc99"),bytes6("e6ae76"),bytes6("cc8f52"),bytes6("bb7f43"),bytes6("966329"),bytes6("925b2d"),bytes6("7a4625"),bytes6("ffcc73"),bytes6("ffcc4d")];
+            uint skinColorIndex = NDUtils.randomNum(string.concat("Skin", index.toString()),0,9);
             string memory skinColor = string(abi.encodePacked("#",skinColors[skinColorIndex]));
-            string memory attribute = string.concat(',{"trait_type":"Skin Color","value":"', skinColor, '"}');
-            return (skinColor, attribute);
+            return skinColor;
+        }
+
+
+        function getTraitColor(uint colorIndex) public pure returns (string memory) {
+
+            bytes6[10] memory colors = [bytes6("797d95"),bytes6("be1521"),bytes6("2bbe16"), bytes6("aa7035"),bytes6("538027"),bytes6("276280"),bytes6("802635"), bytes6("be8e16"),bytes6("ff7301"),bytes6("1597be")];
+            return string(abi.encodePacked("#",colors[colorIndex]));
+        }
+
+        function getTraitAttribute(string memory traitType, string memory traitValue) public pure returns (string memory) {
+            return string.concat(',{"trait_type":"', traitType, '","value":"', traitValue, '"}');
         }
 
 
         function getCityTraits(uint index) public pure returns (CityTraits memory) {
 
+            uint cityIndex = index - 19 - 100;
+
             CityTraits memory cityTraits;
 
+            uint8[] memory displayDevicesWeightings =  bytesToInt8Array(hex"26291103");
+            uint8[] memory chartTypeWeightings = bytesToInt8Array(hex"152c0e0e08");
 
-            address[5] memory priceFeedAddresses = [0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419,0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c,0xEC8761a0A73c34329CA5B1D3Dc7eD07F30e836e2,0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6,0x379589227b15F1a12195D3f2d90bBc9F31f95235];
-            uint traitIndex = (index * 3 ) % 5;
+
+            address[5] memory priceFeedAddresses = [0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c,0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419,0xEC8761a0A73c34329CA5B1D3Dc7eD07F30e836e2,0x379589227b15F1a12195D3f2d90bBc9F31f95235,0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6];
+            uint traitIndex = getWeightIndex("Chart", index, chartTypeWeightings);
             cityTraits.priceFeed = priceFeedAddresses[traitIndex];
 
-            string[4] memory displays = ['Crystal Ball', 'Laptop', 'Clipboard', 'Hologram'];
-            cityTraits.displayType = (index * 2) % 4;
+            string[4] memory displays = ['Laptop', 'Clipboard', 'Crystal Ball',  'Hologram'];
+            cityTraits.displayType = getWeightIndex("Display", index, displayDevicesWeightings);
 
             cityTraits.displaySVG = string.concat("<use href='#", cityTraits.displayType == 0 ? "cr" : cityTraits.displayType == 1 ? "la" : cityTraits.displayType == 2 ? "cl" : "pr", "' />");
 
             uint cityTypes = 208949948408315176645400514316296940490473578437358986892907;
-            cityTraits.skyLinetype = (cityTypes >> ((index) * 2)) & 3;
+            cityTraits.skyLinetype = (cityTypes >> ((cityIndex) * 2)) & 3;
 
             string[4] memory skyLineTypes = ["mini","midi","large","mega"];
             for(uint i = 0; i < skyLineTypes.length; i++) {
@@ -98,16 +157,38 @@
                     cityTraits.skylineSVG = string.concat("<use href='#", skyLineTypes[i], "' />", cityTraits.skylineSVG );
                 }
             }
+
             uint coastelIndexes = 160480604047421108333616122368;
-            cityTraits.isCoastel = (coastelIndexes & (1 << index)) != 0;
-            cityTraits.attributes = string.concat( ',{"trait_type": "Display Device", "value": "', displays[cityTraits.displayType], '"},{"trait_type": "Skyline", "value": "', skyLineTypes[cityTraits.skyLinetype], '"},{"trait_type":"Coastel View","value":"', cityTraits.isCoastel ? "Yes" : "No", '"}');
+            cityTraits.isCoastel = (coastelIndexes & (1 << cityIndex)) != 0;
+
+            (cityTraits.catTypeId, cityTraits.catColor) = getCatTrait(index);
+
+            uint tableColorIndex = NDUtils.randomNum(string.concat("Table", index.toString()), 0, 4) + 3;
+            string memory tableColor = getTraitColor(tableColorIndex);
+
+            cityTraits.tableSVG = string.concat("<use href='#c-table' fill='", tableColor, "' />");
+            cityTraits.attributes = string.concat( getTraitAttribute("Display Device", displays[cityTraits.displayType]), getTraitAttribute("Skyline",string.concat(skyLineTypes[cityTraits.skyLinetype],cityTraits.isCoastel ? " Ocean" : "" )));
 
             return cityTraits;
         }
 
+        function getNFTInside(uint index) public pure returns (uint) {
+
+            uint8[] memory nftWeightings =  bytesToInt8Array(hex"00010a090c0b0a0a0d0b0b0d100b0b080d060d");
+            uint256 i = NDUtils.randomNum(string.concat("NFT", index.toString()), 0,189);
+            return usew(nftWeightings, i);
+        }
+
+            
         function getLandscapeTraits(uint index) public pure returns (LandscapeTraits memory ) {
 
+            uint landscapeIndex = index - 19 - 100 - 100;
+
             LandscapeTraits memory landscapeTraits;
+
+            uint8[] memory hatWeightings =  bytesToInt8Array(hex"000f16130c110f");
+            uint8[] memory shirtColorWeightings = bytesToInt8Array(hex"212121");
+            uint8[] memory shirtPatternWeightings = bytesToInt8Array(hex"1a280e050e");
             
             uint256[2] memory traits = [38567096731314568780641464313144695135602970097189989059279612274963869152067,4467654741599495210471749775461820980734155125];
 
@@ -115,30 +196,40 @@
 
             string[3] memory climateZoneTraits = ["Polar", "Temperate", "Desert"];
             bytes6[3] memory climateZoneColors = [bytes6("DFB2F7"),bytes6("B9C966"),bytes6("F9B233")];
-            landscapeTraits.climateZoneIndex = (climateZones >> ((101-index) * 2)) & 3;
+            landscapeTraits.climateZoneIndex = (climateZones >> ((101-landscapeIndex) * 2)) & 3;
             landscapeTraits.climateZoneColor = string(abi.encodePacked("#",climateZoneColors[landscapeTraits.climateZoneIndex]));
 
-            (string memory skinColor, string memory skinColorAttribute) = getSkinColor(index);
-            landscapeTraits.skinColor = skinColor;
+            landscapeTraits.skinColor = getSkinColor(index);
+
+            (landscapeTraits.catTypeId, landscapeTraits.catColor) = getCatTrait(index);
 
 
-            bytes6[5] memory shirtsColors = [bytes6("ac2532"),bytes6("543e85"),bytes6("2d8fab"),bytes6("46ad47"),bytes6("ad8430")];
-            uint traitIndex = (index * 2) % 5;
-            landscapeTraits.shirtColor = string(abi.encodePacked("#",shirtsColors[traitIndex]));
+            uint traitIndex = getWeightIndex("ShirtColor", index, shirtColorWeightings) + 7;
+            landscapeTraits.shirtColor = getTraitColor(traitIndex);
 
-            string [4] memory shirtPatterns = ["striped","polka","animal","none"];
-            traitIndex = (index * 2) % 4;
+            landscapeTraits.furnitureColor = getTraitColor(NDUtils.randomNum(string.concat("Furniture", index.toString()), 0, 4) + 3);
+            landscapeTraits.furnitureSVG = string.concat("<g fill='", landscapeTraits.furnitureColor  , "'><use href='#easel' /><use href='#l-table' /></g>");
+
+            traitIndex = NDUtils.randomNum(string.concat("Pants", index.toString()), 0, 3) + 0;
+            landscapeTraits.pantsColor = getTraitColor(traitIndex);
+
+            string [5] memory shirtPatterns = ["polka","striped","animal","animal2","none"];
+            traitIndex = getWeightIndex("ShirtPattern", index, shirtPatternWeightings);
 
             landscapeTraits.shirtPattern = shirtPatterns[traitIndex];
 
-            landscapeTraits.artistSVG = string.concat("<use href='#arti' fill='", landscapeTraits.skinColor, "' />", "<use href='#shirt' fill='", landscapeTraits.shirtColor, "' /><use href='#shirt' fill='url(#", landscapeTraits.shirtPattern, ")' />");
+
+            string [8] memory hats = ["fedora","basecap","french_hat","beanie","sunhat","glasses","chinoise","cylinder"];
+            landscapeTraits.hat = hats[getWeightIndex("Hat", index, hatWeightings)];
+
+            landscapeTraits.artistSVG = string.concat("<use href='#arti' fill='", landscapeTraits.skinColor, "' /><use href='#shirt' fill='", landscapeTraits.shirtColor, "' /><use href='#shirt' fill='url(#", landscapeTraits.shirtPattern, ")' /><use href='#pants' fill='", landscapeTraits.pantsColor, "' /><use href='#", landscapeTraits.hat, "' />");
 
 
 
 
 
-            traitIndex = (index * 4) / 256;
-            uint traitPos = (index * 4) % 256;
+            traitIndex = (landscapeIndex * 4) / 256;
+            uint traitPos = (landscapeIndex * 4) % 256;
 
 
 
@@ -156,19 +247,35 @@
             landscapeTraits.front =  landscapeTraits.climateZoneIndex == 0 ? string.concat(landscapeTraits.front, "<use href='#l-p' />") : landscapeTraits.climateZoneIndex == 1 ? string.concat(landscapeTraits.front, "<use href='#l-t' />") : string.concat(landscapeTraits.front, "<use href='#l-d' />");
 
 
-            string [8] memory hats = ["fedora","basecap","french_hat","beanie","sunhat","glasses","chinoise","cylinder"];
-            landscapeTraits.hat = hats[index % hats.length];
-
-
-
-
-            string memory YES = "Yes";
-            string memory NO = "No";
-
-            landscapeTraits.attributes = string.concat(skinColorAttribute ,',{"trait_type":"City","value":"', landscapeTraits.hasCity ? YES : NO, '"},{"trait_type":"River","value":"',landscapeTraits.hasRiver ? YES :NO, '"},{"trait_type":"Mountains","value":"', landscapeTraits.hasMountains ?YES : NO, '"},{"trait_type":"Ocean","value":"',landscapeTraits.hasOcean ? YES : NO, '"},{"trait_type":"Climate Zone","value":"', climateZoneTraits[landscapeTraits.climateZoneIndex], '"}, {"trait_type":"Shirt Color","value":"', landscapeTraits.shirtColor, '"},{"trait_type":"Pants Color","value":"', landscapeTraits.pantsColor, '"}, {"trait_type":"Hat","value":"', landscapeTraits.hat, '"}, {"trait_type":"Shirt Color","value":"', landscapeTraits.shirtColor, '"}');
+            landscapeTraits.attributes = string.concat( getTraitAttribute("Landscape", string.concat(landscapeTraits.hasCity ? "City " : "", landscapeTraits.hasRiver ? " River" :"", landscapeTraits.hasMountains ? "Mountains " : "",  landscapeTraits.hasOcean ? "Ocean" : "")), getTraitAttribute("Climate Zone", climateZoneTraits[landscapeTraits.climateZoneIndex]), getTraitAttribute("Shirt", string.concat(landscapeTraits.shirtColor, " ", landscapeTraits.shirtPattern )) ,getTraitAttribute("Cat Color", landscapeTraits.catColor ) , getTraitAttribute("Hat", landscapeTraits.hat));
             return landscapeTraits;
 
         }
+
+          function usew(uint8[] memory w,uint256 i) internal pure returns (uint8) {
+                uint8 ind=0;
+                uint256 j=uint256(w[0]);
+                while (j<i) {
+                ind++;
+                j+=uint256(w[ind]);
+                }
+                return ind;
+            }
+
+        function getWeightIndex(string memory salt, uint tokenId, uint8[] memory weights) internal pure returns (uint) {
+            uint256 i  = NDUtils.randomNum(string.concat(salt, tokenId.toString()), 0,99);
+            return usew(weights, i);
+        }
+        
+
+        function bytesToInt8Array(bytes memory data) internal pure returns (uint8[] memory) {
+            uint8[] memory result = new uint8[](data.length);
+            for (uint i = 0; i < data.length; i++) {
+                result[i] = uint8(data[i]);
+            }
+            return result;
+        }
+
 
 
 

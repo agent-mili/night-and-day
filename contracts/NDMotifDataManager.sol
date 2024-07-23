@@ -6,7 +6,7 @@ import "./motifs/GenericMotifs.sol";
 import "./motifs/GenericMotifsSVG.sol";
 import "./motifs/Assets.sol";
 
-
+import "forge-std/console.sol";
 import"./NDDecoder.sol";
 import "./NDUtils.sol";
 
@@ -29,7 +29,7 @@ contract NDMotifDataManager {
     string constant MOTIF_TYPE_LANDSCAPE = "Landscape";
 
 
-      string public assets = Assets.getAssets();
+    string public assets = Assets.getAssets();
 
      
 
@@ -64,12 +64,12 @@ contract NDMotifDataManager {
             // handle sight seeing motifs
             motifType = MotifType.SIGHT_SEEING;
 
-           if (tokenId < 12) {
+           if (tokenId < 11) {
                motifData = sightSeeing1.getMotifData(tokenId);
               }     
            else  {
 
-               motifData =  sightSeeing2.getMotifData(tokenId -12);
+               motifData =  sightSeeing2.getMotifData(tokenId -11);
            }
  
 
@@ -122,33 +122,50 @@ contract NDMotifDataManager {
         return motif;
 
     }
+    
+
+    function getFlowerType(uint256 tokenId) public view returns (FlowerType) {
+
+        uint8[19] memory attractionFlowerTypes = [uint8(0), 0, 2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+       
+       if (tokenId < 19)
+       return FlowerType(attractionFlowerTypes[tokenId]);
+       else return genericMotifs.getFlowerType(tokenId);
+
+
+    }
+
+    function getNFTInside(uint tokenId) public view returns (uint) {
+        return genericMotifs.getNFTInside(tokenId);
+    }
 
     function getBeachTraits(uint256 tokenId) public view returns (BeachTraits memory) {
 
-        return genericMotifs.getBeachTraits(tokenId - BEACHES_START_INDEX);
+        return genericMotifs.getBeachTraits(tokenId);
     }
 
-    function getSkinColor(uint256 tokenId) public view returns (string memory, string memory) {
-        return genericMotifs.getSkinColor(tokenId - BEACHES_START_INDEX);
-    }
+
 
     function getCityTraits(uint256 tokenId) public view returns (CityTraits memory) {
-        return genericMotifs.getCityTraits(tokenId - SKYSCRAPERS_START_INDEX);
+        return genericMotifs.getCityTraits(tokenId);
     }
 
 
     function getLandScapeTraits(uint tokenId) public view returns (LandscapeTraits memory) {
-        return genericMotifs.getLandscapeTraits(tokenId - LANDSCAPE_START_INDEX);
+        return genericMotifs.getLandscapeTraits(tokenId);
     }
 
     //
-    function getAssetInScene() public pure returns (AssetInScene[]  memory) {
+    function getAssetInScene() public view returns (AssetInScene[]  memory) {
         bytes memory assetsInScene = Assets.getAssetsInScene();
 
         return NDDecoder.decodeAssetsForScenes(assetsInScene);
     }
 
-    function getFlower(FlowerType flowerType) public pure returns (FlowerParts memory) {
+    function getFlower(FlowerType flowerType) public view returns (FlowerParts memory) {
+
+        console.log("getFlower");
+        console.logUint(uint(flowerType));
 
         if (flowerType == FlowerType.SUNFLOWER) {
             return getSunflower();
