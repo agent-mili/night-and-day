@@ -4,9 +4,9 @@ coverage
 coverage.json
 typechain
 typechain-types
+out
 
 # Hardhat files
 cache
 artifacts
 ignition/deployments
-
