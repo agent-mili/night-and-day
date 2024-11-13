@@ -17,3 +17,7 @@ server
 scripts
 ignition
 
+hardhat.config.ts
+package-lock.json
+tsconfig.json
+
