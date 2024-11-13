@@ -5,8 +5,15 @@ coverage.json
 typechain
 typechain-types
 out
+test
+svgs
+
 
 # Hardhat files
 cache
 artifacts
-ignition/deployments
+cache_forge
+server
+scripts
+ignition
+
