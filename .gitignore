@@ -10,7 +10,7 @@ svgs
 
 
 # Hardhat files
-cache_forge
+cache
 artifacts
 cache_forge
 server
