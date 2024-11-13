@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.20;
 
 
@@ -23,15 +25,15 @@ library SunCalc {
 
 
 
-    function toDays(uint timestamp) public pure returns (uint) {
+    function toDays(uint timestamp) internal pure returns (uint) {
         return timestamp / 86400  - 5e17 + J1970 - J2000;
     }
 
-    function fromJulian(uint256 j) public pure returns (uint256) {
+    function fromJulian(uint256 j) internal pure returns (uint256) {
         return (j + 5e17 - J1970) * 86400;
     }
 
-    function julianCycle(uint256 d, int256 lw) public pure returns (int256) {
+    function julianCycle(uint256 d, int256 lw) internal pure returns (int256) {
         int256 cycle = int256(d) - int256(J0) -  (1e18 * lw / int256(PI2));
 
         // round to cloesest integer 
@@ -43,8 +45,7 @@ library SunCalc {
         return cycle / 1e18 * 1e18;
     }
 
-    //function approxTransit(Ht, lw, n) { return J0 + (Ht + lw) / (2 * PI) + n; }
-    // implement in solidity
+
        function approxTransit(uint256 Ht, int256 lw, uint256 n) public pure returns (uint256) {
  
         int transit = (int(Ht) + lw ) * 1e18 / int(PI2) ;
@@ -52,14 +53,14 @@ library SunCalc {
         return uint(int(J0) + transit + int(n));
     }
 
-     function solarTransitJ(uint256 ds, uint256 M, uint256 L) public pure returns (uint256) {
+     function solarTransitJ(uint256 ds, uint256 M, uint256 L) internal pure returns (uint256) {
         uint256 term1 = uint(int(J2000) + int(ds) + (53*1e14 * Trigonometry.sin(M) / 1e18 )); // 0.0053 * 1e18
         int256 term2 = 69*1e14 * Trigonometry.sin(2 * L) / 1e18;
 
         return uint(int(term1) - term2);
     }
 
-    function hourAngle(uint256 h, int256 phi, int256 d) public view returns (uint) {
+    function hourAngle(uint256 h, int256 phi, int256 d) internal pure returns (uint) {
 
 
 
@@ -89,7 +90,7 @@ library SunCalc {
     }
 
 
-    function getSetJ(uint256 h, int256 lw, int256 phi, int256 dec, uint256 n, uint256 M, uint256 L) internal view returns (uint256) {
+    function getSetJ(uint256 h, int256 lw, int256 phi, int256 dec, uint256 n, uint256 M, uint256 L) internal pure returns (uint256) {
         uint256 w = hourAngle(h, phi, dec);
 
 
@@ -106,7 +107,7 @@ library SunCalc {
     //for moon calculation
     uint constant EARTH_OBLIQUITY = TO_RAD * 234397 / 1e4;
 
-    function rightAscension(int l, int b) public pure returns (int) {
+    function rightAscension(int l, int b) internal pure returns (int) {
 
         int y = (Trigonometry.sin(l) * Trigonometry.cos(EARTH_OBLIQUITY) - tan(b) * Trigonometry.sin(EARTH_OBLIQUITY)) / 1e18;
         int cosL = Trigonometry.cos(l);
@@ -114,19 +115,19 @@ library SunCalc {
     }
 
 
-    function declination(int l, int b) public pure returns (int) {
+    function declination(int l, int b) internal pure returns (int) {
         int numerator = (Trigonometry.sin(b) * Trigonometry.cos(EARTH_OBLIQUITY) + (Trigonometry.cos(b) * Trigonometry.sin(EARTH_OBLIQUITY) * Trigonometry.sin(l) / 1e18))/1e18;
         return InverseTrigonometry.arcsin(numerator);
 }
 
-    function altitude(int H, uint phi, int dec) public pure returns (int256) {
+    function altitude(int H, uint phi, int dec) internal pure returns (int256) {
             int256 term1 = (Trigonometry.sin(phi) * Trigonometry.sin(dec)) / 1e18;
             int256 term2 = (Trigonometry.cos(phi) * Trigonometry.cos(dec) * Trigonometry.cos(H)) / 1e36;
             int256 sum = term1 + term2;
             return InverseTrigonometry.arcsin(sum);
         }
 
-    function azimuth(int256 H, uint256 phi, int256 dec) public pure returns (int256) {
+    function azimuth(int256 H, uint256 phi, int256 dec) internal pure returns (int256) {
     int256 sinH = Trigonometry.sin(H);
     int256 cosH = Trigonometry.cos(H);
     int256 sinPhi = Trigonometry.sin(phi);
@@ -139,7 +140,7 @@ library SunCalc {
 }
 
 
-    function sideRealTime(uint d, int lw) public pure returns (int) {
+    function sideRealTime(uint d, int lw) internal pure returns (int) {
         uint x = 28016e16 + 3609856235 * d / 1e7;
         return (int(TO_RAD * x) - lw * 1e18) / 1e18;
     }
@@ -152,7 +153,7 @@ library SunCalc {
 
       uint256 d = toDays(timestamp);
 
-        (int ra, int dec, uint dt) = moonCoords(d);
+        (int ra, int dec, ) = moonCoords(d);
         int H = sideRealTime(d, lw) - ra;
         int h = altitude(H, phi, dec);
         int x = (tan(phi) * Trigonometry.cos(dec) - Trigonometry.sin(dec) * Trigonometry.cos(H)) / 1e18;
@@ -198,7 +199,7 @@ library SunCalc {
 
 
 
-    function moonCoords(uint256 d) public pure returns (int, int, uint) {
+    function moonCoords(uint256 d) internal pure returns (int, int, uint) {
 
       uint L = TO_RAD * (218316e15 + 13176396 * d / 1e6) / 1e18;
       uint M = TO_RAD * (134963e15 + 13064993 * d / 1e6) / 1e18;
@@ -215,12 +216,12 @@ library SunCalc {
 
 
     // Solar Mean Anomaly
-    function solarMeanAnomaly(uint d) public pure returns (uint) {
+    function solarMeanAnomaly(uint d) internal pure returns (uint) {
         return TO_RAD * ((3575291 * 1e14) + (98560028 * d/ 1e8)) / 1e18;
     }
 
     // Ecliptic Longitude
-    function eclipticLongitude(uint M) public pure returns (int) {
+    function eclipticLongitude(uint M) internal pure returns (int) {
 
         int C1 = 19148 * Trigonometry.sin(M) / 1e4;
         int C2 = 2 * Trigonometry.sin(2 * M) / 1e2;
@@ -231,7 +232,7 @@ library SunCalc {
         return int(M) + C + int(P + PI_E);
     }
 
-    function sunCoords(uint d) public pure returns (int, int) {
+    function sunCoords(uint d) internal pure returns (int, int) {
 
     uint M = solarMeanAnomaly(d);
     int L = eclipticLongitude(M);
@@ -244,7 +245,7 @@ library SunCalc {
      //always returns the sunrise/sunset time enclosing the given date 
      //e.G. in the night we will have a past sunset and a future sunrise
      // in the day we have a past sunrise and a future sunset
-     function getSunRiseSet(uint256 date, int256 lat, int256 lng) public view returns (uint256, uint256) {
+     function getSunRiseSet(uint256 date, int256 lat, int256 lng) public pure returns (uint256, uint256) {
 
 
 

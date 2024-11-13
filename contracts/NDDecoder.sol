@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.25;
 
 import "./BasicMotif.sol";
@@ -9,23 +11,39 @@ import "forge-std/console.sol";
 library NDDecoder {
 
 
-function decodeGenericMotif(bytes memory _data) public pure returns (GenericMotif memory) {
+function decodeGenericMotif(bytes memory _uniqueData, bytes memory _genericData) public pure returns (Motif memory) {
     //decode name from first 20 bytes
     uint index = 0;
  
 
-    int lat = bytesToInt(slice(_data, index, 4 ));
+    int lat = bytesToInt(slice(_uniqueData, index, 4 ));
     index += 4;
-    int lng = bytesToInt(slice(_data, index, 4 ));
+    int lng = bytesToInt(slice(_uniqueData, index, 4 ));
     index += 4;
 
-    int heading = bytesToInt(slice(_data, index, 2));
+    int heading = bytesToInt(slice(_uniqueData, index, 2));
     index += 2;
 
-    string memory motifName = string(trimNullBytes(slice(_data, index, _data.length - index)));
+    string memory motifName = string(trimNullBytes(slice(_uniqueData, index, _uniqueData.length - index)));
 
-    GenericMotif memory motif = GenericMotif(motifName, lat, lng, heading);
+
+    index = 0;
+    _genericData = flzDecompress(_genericData);
+    uint horizon = uint(bytesToInt(slice(_genericData, index, 2)));
+    index += 2;
+
+     (SceneInMotif[] memory scenes, uint sceneInMotifEndIndex) = decodeSceneIMotif(_genericData, index);
+      index = sceneInMotifEndIndex ;     
+
+    (MovingScene[] memory movingScenes, uint movingSceneEndIndex) = decodeMovingScene(_genericData, index);
+    index = movingSceneEndIndex ;
+
+    string memory svg = string(slice(_genericData, index, _genericData.length - index));
+
+    Motif memory motif = Motif( motifName, lat, lng, heading, horizon, svg, scenes, new Replacement[](0), movingScenes, MotifType(0));
     return motif;
+
+
 }
 
 
@@ -33,8 +51,8 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
        //decode name from first 20 bytes
             _data = flzDecompress(_data);
             uint index = 0;
-            string memory motifName = string(trimNullBytes(slice(_data, index, 20)));
-            index += 20;
+            string memory motifName = string(trimNullBytes(slice(_data, index, 26)));
+            index += 26;
 
             int lat = bytesToInt(slice(_data, index, 4 ));
             index += 4;
@@ -44,7 +62,7 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
 
             int heading = bytesToInt(slice(_data, index, 2));
             index += 2;
-            int horizon = bytesToInt(slice(_data, index, 2));
+            uint horizon = uint(bytesToInt(slice(_data, index, 2)));
             index += 2;
 
             (SceneInMotif[] memory scenes, uint sceneInMotifEndIndex) = decodeSceneIMotif(_data, index);
@@ -54,16 +72,97 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
             (Replacement[] memory replacements, uint replacementEndIndex) = decodeReplacements(_data, index);
             index = replacementEndIndex ;
 
+            (MovingScene[] memory movingScenes, uint movingSceneEndIndex) = decodeMovingScene(_data, index);
+            index = movingSceneEndIndex ;
+
             // create svg with rest of data
             string memory svg = string(slice(_data, index, _data.length - index));
 
             // create motif and return
-            Motif memory motif = Motif( motifName, lat, lng, heading, horizon, svg, scenes, replacements,MotifType(0));
+            Motif memory motif = Motif( motifName, lat, lng, heading, horizon, svg, scenes, replacements, movingScenes, MotifType(0));
             return motif;
 
     }
 
-    function decodeAssetsForScenes (bytes memory _data) public view returns (AssetInScene[] memory){
+    function decodeMovingScene(bytes memory _data, uint index) public pure returns (MovingScene[] memory, uint){ 
+
+        // decoe scene count
+        uint sceneCount = uint(uint8(_data[index]));
+        index += 1;
+
+
+        // decode scenes
+
+        MovingScene[] memory scenes = new MovingScene[](sceneCount + 2);
+        for(uint i = 0; i < sceneCount; i++){
+
+        string memory placeholder = string(trimNullBytes(slice(_data, index, 8)));
+        index += 8;
+
+        bool horizonUp = uint(uint8(_data[index])) == 1;
+        index += 1;
+
+        // decode asset count
+        uint assetCount = uint(uint8(_data[index]));
+        index += 1;
+
+        // decode assets
+        MovingSceneAsset[] memory assets = new MovingSceneAsset[](assetCount);
+        for(uint j = 0; j < assetCount; j++){
+            // decode asset name
+            MovingSceneAsset memory asset = decodeMovingAsset(_data, index);
+            assets[j] = asset;
+            index += 25;
+        }
+
+        MovingScene memory movingScene = MovingScene(placeholder,horizonUp, assets);
+        scenes[i] = movingScene;
+        }
+
+        return (scenes, index);
+
+
+    }
+
+    function decodeMovingAsset(bytes memory _data, uint index) public pure returns (MovingSceneAsset memory){
+        // decode asset name
+        string memory assetName = trimNullBytes(slice(_data, index, 8));
+        index += 8;
+
+        uint minScale = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        uint maxScale = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+
+        uint minY = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        uint maxY = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        uint duration = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        uint probability = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        uint checkInterval = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        uint possibleOffset = uint(bytesToInt(slice(_data, index, 2)));
+        index += 2;
+
+        DAYTIME dayTime = DAYTIME(uint(uint8(_data[index])));
+        index += 1;
+
+        // create asset and add to assets
+        MovingSceneAsset memory asset = MovingSceneAsset(assetName, minScale, maxScale, minY, maxY,duration, probability, checkInterval, possibleOffset, dayTime);
+        return asset;
+    }
+
+    function decodeAssetsForScenes (bytes memory _data) public pure returns (AssetInScene[] memory){
         // decode asset count
                     
                     uint index = 0;
@@ -122,12 +221,18 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
                 // decode placeHolder
             
                 string memory placeHolder = trimNullBytes(slice(_data, index, 8));
+                 index += 8;
+                   // decode asset count
+                uint sceneDetailsCount = uint(uint8(_data[index]));
+                index += 1;
 
-                index += 8;
+                Scene[] memory sceneDetails = new Scene[](sceneDetailsCount);
+                for(uint j = 0; j < sceneDetailsCount; j++){
+
                 // decode area
                 int[4] memory area;
-                for(uint j = 0; j < 4; j++){
-                    area[j] = bytesToInt(slice(_data, index, 2));
+                for(uint h = 0; h < 4; h++){
+                    area[h] = bytesToInt(slice(_data, index, 2));
                     index += 2;
                 }
 
@@ -135,23 +240,21 @@ function decodeGenericMotif(bytes memory _data) public pure returns (GenericMoti
                 uint assetCount = uint(uint8(_data[index]));
                 index += 1;
 
-                  uint8[] memory assets = new uint8[](assetCount);
-             for(uint j = 0; j < assetCount; j++){
+                  uint[] memory assets = new uint[](assetCount);
+             for(uint k = 0; k < assetCount; k++){
                     // decode asset name
-                    uint8 asset = uint8(_data[index]);
-                    assets[j] = asset;
+                    uint asset = uint(uint8((_data[index])));
+                    assets[k] = asset;
                     index += 1;
-
-
+                }
+                    uint scale =  uint(bytesToInt(slice(_data, index, 2)));
+                    index +=2;
+                    Scene memory scene = Scene(area, assets, scale);
+                    sceneDetails[j] = scene;
                 }
 
-
-                uint scale =  uint(bytesToInt(slice(_data, index, 2)));
-                index +=2;
-
-                 SceneInMotif memory scene = SceneInMotif(placeHolder, assets, area, scale);
-                
-                scenes[i] = scene;
+                SceneInMotif memory sceneInMotif = SceneInMotif(placeHolder, sceneDetails);
+                scenes[i] = sceneInMotif;
 
             }
 

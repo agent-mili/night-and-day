@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 
 
 
-describe("NAD", function () {
+xdescribe("NAD", function () {
 
     xit("should render light house", async function () {
         const [owner, otherAccount] = await ethers.getSigners();

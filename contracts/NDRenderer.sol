@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.25;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -5,12 +7,12 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 //import "./NDAlgos.sol";
 import "./BasicMotif.sol";
 //import "./Assets.sol";
-
-import "./SunCalc.sol";
-
 import "./NDUtils.sol";
 
-import "forge-std/console.sol";
+import "./solidity-trigonometry/Trigonometry.sol";
+
+import { sqrt} from "@prb/math/src/Common.sol";
+
 
 
 
@@ -28,11 +30,7 @@ int constant sunWidthInDegree = viewingRangeHorizontal * 1e4 / skyWidth * 95;
 uint256 constant TO_RAD = 17453292519943296;
 uint256 constant TO_DEG = 57295779513224454144;
 
- struct SkyAndWaterColor {
-        int altitude;
-        bytes6 skyColor;
-        bytes6 waterColor;
-    }
+
 
 
     struct RenderedScene {
@@ -50,6 +48,7 @@ uint256 constant TO_DEG = 57295779513224454144;
     struct SceneIndexes {
         uint i;
         uint i2;
+        uint i3;
         uint allAssetIndex;
     }
 
@@ -76,61 +75,94 @@ uint256 constant TO_DEG = 57295779513224454144;
         return (svg, nightMaskSvg);
     }
 
-    function renderSceneAssets(SceneInMotif memory scene,  AssetInScene[] memory assets, SceneUtils memory sceneUtils) public pure returns (RenderedScene memory) {
+    function renderExtraMovingAssets(string memory svg, MovingScene[] memory movingScenes, uint timestamp, uint tokenId, SunMoon memory sunMoon)  public pure returns (string memory, string memory) {
+
+
+            string memory salt = tokenId.toString();
+            string memory skySceneSVG;
+
+            for(uint i = 0; i < movingScenes.length; i++) {
+                MovingScene memory movingScene = movingScenes[i];
+                string memory assetsSVG;
+
+                assetsSVG =  renderMovingAsset(timestamp, string.concat(salt, movingScene.placeholder) , movingScene, sunMoon);
+                if (Strings.equal(movingScene.placeholder, "$")) {
+                    skySceneSVG = assetsSVG;
+                    continue;
+                }
+                if (Strings.equal(movingScene.placeholder, "bi")) {
+                    assetsSVG = string.concat("<g id='bird-group", salt, "'>", assetsSVG, "</g>");
+                }
+                svg = NDUtils.replaceFirst(svg,string.concat("$", movingScene.placeholder), assetsSVG);
+
+            }
+
+ 
+           return (skySceneSVG, svg);
+        }
+
+
+
+
+        
+
+    function renderSceneAssets(SceneInMotif memory sceneInMotif,  AssetInScene[] memory assets, SceneUtils memory sceneUtils) public pure returns (RenderedScene memory) {
         
         SceneIndexes memory indexes;
 
-        SceneElement [] memory elements = new SceneElement[](assets.length);
+        SceneElement [] memory elements = new SceneElement[](20);
         RenderedScene memory renderedScene;
         
-        indexes.allAssetIndex = 0;
 
-        
+        for (indexes.i3 = 0; indexes.i3 < sceneInMotif.sceneDetails.length; indexes.i3++) {
+            Scene memory scene = sceneInMotif.sceneDetails[indexes.i3];
+            
           
         for (indexes.i = 0; indexes.i < scene.assets.length; indexes.i++) {
 
             AssetInScene memory asset = assets[scene.assets[indexes.i]];
 
 
-            string memory assetSalt = string.concat(sceneUtils.tokenId.toString(), asset.name, scene.placeHolder);
+            string memory assetSalt = string.concat(sceneUtils.tokenId.toString(), asset.name, sceneInMotif.placeHolder, scene.area[0].toStringSigned(), scene.area[1].toStringSigned());
             uint[] memory visibleStartTimes = NDUtils.computeStarttime(sceneUtils.timestamp, asset, assetSalt , sceneUtils.sunrise, sceneUtils.sunset, false);
           
         
             for (indexes.i2 = 0; indexes.i2 < visibleStartTimes.length; indexes.i2++) {
                 
-
+                
                  SceneElement memory sceneElement;
-                 sceneElement.posSalt = string(abi.encodePacked(visibleStartTimes[indexes.i2].toString(), asset.name));
+                 sceneElement.posSalt = string.concat(visibleStartTimes[indexes.i2].toString(), asset.name, scene.area[0].toStringSigned());
                  sceneElement.y = uint(scene.area[1]) + NDUtils.randomNum(sceneElement.posSalt, 0, uint(scene.area[3]));
                  sceneElement.x = int(scene.area[0]) + int(NDUtils.randomNum(sceneElement.posSalt, 0, uint(scene.area[2])));
                  sceneElement.xScale = NDUtils.randomNum(sceneElement.posSalt, 0,1)  == 0 ? int(1): int(-1);
                  sceneElement.decimalScaleX = NDUtils.renderDecimal(int(sceneElement.xScale * int(scene.scale)));
                 sceneElement.decimalScaleY = NDUtils.renderDecimal(int(scene.scale));
 
-                 sceneElement.svg = NDUtils.createElementAndSetColor(sceneElement, sceneElement.posSalt, asset.name);
+                 sceneElement.svg = NDUtils.createElementAndSetColor(sceneElement, asset.name,0);
 
-                 elements[indexes.allAssetIndex] = sceneElement;
+                 if (indexes.allAssetIndex >= elements.length) {
+                    elements = pushElement(elements, indexes.allAssetIndex, sceneElement);
+                 } else {
+                    elements[indexes.allAssetIndex] = sceneElement;
+                    }
                  indexes.allAssetIndex = indexes.allAssetIndex + 1;
                 
-
-                 renderedScene.nightMaskSvg = string.concat(renderedScene.nightMaskSvg, '<use href="#', string.concat(asset.name, "-mask"), '" filter="url(#makeBlack)" transform="translate( ', sceneElement.x.toStringSigned(),',', sceneElement.y.toString(), ') scale(', sceneElement.decimalScaleX, ' ' , sceneElement.decimalScaleY,')"/>');
+                
+                 asset.dayTime == DAYTIME.DAY ? '' :  renderedScene.nightMaskSvg = string.concat(renderedScene.nightMaskSvg, '<use href="#', string.concat(asset.name, "-mask"), '" filter="url(#makeBlack)" transform="translate( ', sceneElement.x.toStringSigned(),',', sceneElement.y.toString(), ') scale(', sceneElement.decimalScaleX, ' ' , sceneElement.decimalScaleY,')"/>');
                 
                 
         }
             
          
         }
+        }
         
   
 
-        elements = sortElements(elements);
+        elements = sortElements(elements, true);
         
         
-               
-
-
-
-       
+            
 
         for (indexes.i = 0; indexes.i < elements.length; indexes.i++) {
             renderedScene.sceneSvg = string.concat(renderedScene.sceneSvg, elements[indexes.i].svg);
@@ -140,80 +172,98 @@ uint256 constant TO_DEG = 57295779513224454144;
         return renderedScene;
     }
 
-    function sortElements( SceneElement [] memory elements ) public pure returns (SceneElement [] memory){
+    function sortElements(SceneElement[] memory elements, bool isAscending) public pure returns (SceneElement[] memory) {
+        uint n = elements.length;
 
-            uint n = elements.length;
-              for (uint i = 0; i < n; i++) {
-            for (uint j = 0; j < n - i - 1; j++) {
-                if (elements[j].y > elements[j + 1].y) {
-                    // Elemente tauschen
-                    SceneElement memory temp = elements[j];
-                    elements[j] = elements[j + 1];
-                    elements[j + 1] = temp;
+        uint validCount = n;
+        for (uint i = 0; i < n; i++) {
+            if (bytes(elements[i].svg).length == 0) {  
+                validCount = i;
+                break;
+            }
+        }
+
+        SceneElement[] memory validElements = new SceneElement[](validCount);
+        for (uint i = 0; i < validCount; i++) {
+            validElements[i] = elements[i];
+        }
+
+        for (uint i = 0; i < validCount; i++) {
+            for (uint j = 0; j < validCount - i - 1; j++) {
+                if (isAscending ? (validElements[j].y > validElements[j + 1].y) : (validElements[j].y < validElements[j + 1].y)) {
+                    SceneElement memory temp = validElements[j];
+                    validElements[j] = validElements[j + 1];
+                    validElements[j + 1] = temp;
                 }
             }
         }
-        return elements;
 
+        return validElements;
     }
-
     function renderMovingAsset(
         uint timestamp, 
         string memory salt, 
-        string memory assetName, 
-        uint minY, 
-        uint maxY, 
-        bool horizontUp, 
-        uint minScale, 
-        uint maxScale, 
-        uint duration, 
-        uint checkInterval, 
-        uint appearanceProbability, 
-        uint possibleOffset
+        MovingScene memory movingScene,
+        SunMoon memory sunMoon
     ) public pure returns (string memory) {
-        string memory assetSalt = string(abi.encodePacked(salt, assetName));
-        AssetInScene memory assetInScene = AssetInScene(assetName, duration, duration, checkInterval, possibleOffset, appearanceProbability, DAYTIME.NIGHT_AND_DAY);
-        uint[] memory visibleStartTimes = NDUtils.computeStarttime(timestamp, assetInScene, assetSalt , 0, 0, true);
 
         string memory assets;
+        SceneElement [] memory elements = new SceneElement[](20);
+        uint allIndex = 0;
+
+    for (uint j = 0; j < movingScene.assets.length; j++) {
+        MovingSceneAsset memory movingAsset = movingScene.assets[j];
+        string memory assetSalt = string.concat(salt, movingAsset.assetName);
+
+        uint maxDuration = movingAsset.duration * 100 / movingAsset.minScale;
+
+        AssetInScene memory assetInScene = AssetInScene(movingAsset.assetName, maxDuration, maxDuration, movingAsset.checkInterval, movingAsset.possibleOffset, movingAsset.probability, movingAsset.dayTime);
+        uint[] memory visibleStartTimes = NDUtils.computeStarttime(timestamp, assetInScene, assetSalt , sunMoon.sunrise, sunMoon.sunset, true);
+
+
         for (uint i = 0; i < visibleStartTimes.length; i++) {
             uint startTime = (visibleStartTimes[i]);
 
+                SceneElement memory sceneElement;
+
+                sceneElement.posSalt = string.concat(assetSalt, startTime.toString());
+                sceneElement.y = NDUtils.randomNum( sceneElement.posSalt, movingAsset.minY, movingAsset.maxY);
+
+                uint scale;
+                if (movingAsset.minScale == movingAsset.maxScale) {
+                    scale = movingAsset.minScale;
+                } else {
+                   uint proportion = (movingAsset.maxScale - movingAsset.minScale) * (sceneElement.y - movingAsset.minY) * 1e18 / (movingAsset.maxY - movingAsset.minY); 
+                if (movingScene.horizonUp) {
+                    scale = movingAsset.minScale + proportion / 1e18; 
+                } else {
+                    scale = movingAsset.maxScale - proportion / 1e18; 
+                }
+                }
+
+            uint duration = movingAsset.duration * 100 / scale;
+
             int progress = int(timestamp - startTime) * 100 / int(duration);
 
+            if (progress >= -30 && progress <= 160) {
+                
 
-            if (progress >= -30 && progress <= 130) {
-                string memory visibleAssetSalt = string(abi.encodePacked(salt, startTime.toString()));
-                uint y = NDUtils.randomNum(visibleAssetSalt, uint(minY), uint(maxY));
-                int direction = int8(NDUtils.randomNum(visibleAssetSalt, 0, 1) == 0 ? -1 : int8(1));
-                uint maxX = 1080;
-                int x = direction == -1 ? int(maxX) * progress / 100 : int(maxX) * (100 - progress) / 100;
-
-                uint rangeY = maxY - minY;
-                uint diffY = y - minY;
-                uint scaleDiff = maxScale - minScale;
-
-            
-                uint proportion = diffY * 1e18 / rangeY; 
-                uint scale;
-                if (horizontUp) {
-                    scale = minScale + scaleDiff * proportion / 1e18; 
-                } else {
-                    scale = maxScale - scaleDiff * proportion / 1e18; 
-                }
-                SceneElement memory sceneElement;
-                sceneElement.x = x;
-                sceneElement.y = y;
-                sceneElement.decimalScaleX = NDUtils.renderDecimal(int(int(scale) * direction));
+                sceneElement.xScale = int8(NDUtils.randomNum( sceneElement.posSalt, 0, 1) == 0 ? -1 : int8(1));
+                sceneElement.x = sceneElement.xScale == -1 ? int(1080) * progress / 100 : int(1080) * (100 - progress) / 100;
+                sceneElement.decimalScaleX = NDUtils.renderDecimal(int(scale) * sceneElement.xScale);
                 sceneElement.decimalScaleY = NDUtils.renderDecimal(int(scale));
 
 
-                string memory assetSvg = NDUtils.createElementAndSetColor(sceneElement, visibleAssetSalt, assetName);
+                sceneElement.svg = NDUtils.createElementAndSetColor(sceneElement, movingAsset.assetName, timestamp);
 
-
-
-                assets = string.concat(assets, assetSvg);
+                elements = pushElement(elements, allIndex, sceneElement);
+                allIndex ++;
             }
+        }
+    }
+        elements = sortElements(elements, movingScene.horizonUp);
+        for (uint i = 0; i < elements.length; i++) {
+            assets = string.concat(assets, elements[i].svg);
         }
         return assets;
     }
@@ -221,7 +271,7 @@ uint256 constant TO_DEG = 57295779513224454144;
      function renderSun(uint skyHeight, int azimuth, int altitude, uint heading) public pure returns (string memory) {
         
         int sunHeightInDegree = viewingRangeVertical * 1e4 / int(skyHeight)* 95;
-        if (altitude > - sunHeightInDegree && altitude <= viewingRangeVertical + sunHeightInDegree) {
+        if (altitude > - (sunHeightInDegree * 2) && altitude <= viewingRangeVertical + sunHeightInDegree) {
 
             int diffAngle = getDiffAngle(azimuth, int(heading));
 
@@ -251,11 +301,12 @@ uint256 constant TO_DEG = 57295779513224454144;
         return "";
     }
 
-        function renderMoon(uint tokenId, int heading, int skyHeight, int azimuth, int altitude, int pa, int fraction, int angle ) public pure returns (string memory) {
+        function renderMoon(uint tokenId, int heading, uint skyHeight, int azimuth, int altitude, int pa, int fraction, int angle ) public pure returns (string memory) {
 
             int moonWidthInDegree =viewingRangeHorizontal  * 1e4 / skyWidth * 58;
-            int moonHeightInDegree = viewingRangeVertical * 1e4 / skyHeight * 58;
-             if (altitude > - moonHeightInDegree && altitude <= viewingRangeVertical + moonHeightInDegree) {
+            int moonHeightInDegree = viewingRangeVertical * 1e4 / int(skyHeight) * 58;
+                                //fix moonrise in landscape
+            if (altitude > -  (moonHeightInDegree *2 ) && altitude <= viewingRangeVertical + moonHeightInDegree) {
             int diffAngle = getDiffAngle(azimuth, heading);
             int moonRadius = 580000;
 
@@ -292,79 +343,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         return "";
     }
 
-       function applyNight(int256 altitude, uint tokenId) public pure returns (string memory) {
-        // Konstanten in e18
-        int256 altitudeThresholdForFullNight = -180000;
-        int256 opacityFactor = 22 * 1e2;
-
-        uint256 opacity;
-        if (altitude < altitudeThresholdForFullNight) {
-            opacity = 100; 
-        } else if (altitude < 0 && altitude > altitudeThresholdForFullNight) {
-            opacity =  uint( NDUtils.abs(altitude) / opacityFactor );
-        } else {
-            opacity = 0; 
-        }
-
-       
-        string memory opacityString = NDUtils.renderDecimal(int256(opacity));
-
-
-        string memory night = string.concat(
-            '<rect mask="url(#nightMask', tokenId.toString(), ')" style="mix-blend-mode:multiply" width="1080" height="1080" fill="#0F3327" opacity="',
-            opacityString,
-            '"></rect>'
-        );
-
-        
-        return night;
-    }
-
-
-
-    function getSkyColor( int altitude) internal pure returns (string memory , string memory) {
-        
-        
-        SkyAndWaterColor[17] memory  skyColors = [
-        SkyAndWaterColor(-9000, "ce80ff", "f9b233"),
-        SkyAndWaterColor(-1200, "ce80ff", "f9b233"),
-        SkyAndWaterColor(-700, "e780c0", "e0b439"),
-        SkyAndWaterColor(-400, "ff8080", "c8b63f"),
-        SkyAndWaterColor(0, "ff9986", "afb845"),
-        SkyAndWaterColor(300, "ffb28c", "96b94c"),
-        SkyAndWaterColor(700, "ffd986", "7dbb52"),
-        SkyAndWaterColor(1100, "ffff80", "65bd58"),
-        SkyAndWaterColor(1500, "c0eac0", "4cbf5e"),
-        SkyAndWaterColor(2500, "80d5ff", "57af6c"),
-        SkyAndWaterColor(1800, "77c7f8", "639e7a"),
-        SkyAndWaterColor(2500, "6dbaf1", "6e8e88"),
-        SkyAndWaterColor(3500, "64acea", "797d95"),
-        SkyAndWaterColor(4700, "5a9ee4", "846da3"),
-        SkyAndWaterColor(6000, "5190dd", "905cb1"),
-        SkyAndWaterColor(7300, "4783d6", "9b4cbf"),
-        SkyAndWaterColor(8000, "3e75cf", "9b4cbf")
       
-        ];
-        bytes6  cColor = bytes6("ffffff"); 
-        bytes6  wColor = bytes6("ffffff");
-        for (uint i = 0; i < skyColors.length; i++) {
-            if (altitude >= skyColors[i].altitude) {
-                if (i == skyColors.length - 1) {
-                    cColor = skyColors[i].skyColor;
-                    wColor = skyColors[i].waterColor;
-                    break;
-                }
-                else if (altitude < skyColors[i + 1].altitude) {
-                    cColor = skyColors[i].skyColor;
-                    wColor = skyColors[i].waterColor;
-                    break;
-                }
-            }
-        }
-
-     
-        return (string(abi.encodePacked("#",cColor)), string(abi.encodePacked("#",wColor)));
-    }
 
     function getDiffAngle(int256 azimuth, int256 heading) public pure returns (int256) {
 
@@ -387,7 +366,7 @@ uint256 constant TO_DEG = 57295779513224454144;
         return diffAngle;
     }
 
-     function renderFlower(string memory svg, SunMoon memory sunMoon, int256 heading, FlowerType flowerType, FlowerParts memory flowerParts, bool hasPot) public pure returns (string memory) {
+     function renderFlower(SunMoon memory sunMoon, int256 heading, FlowerType flowerType, FlowerParts memory flowerParts, bool hasPot, uint tokenId) public pure returns (string memory) {
         
         int256 azimuth = flowerType == FlowerType.MOONFLOWER ? sunMoon.moonAzimuth : sunMoon.azimuth;
         int256 altitude = flowerType == FlowerType.MOONFLOWER ? sunMoon.moonAltitude : sunMoon.altitude;
@@ -407,12 +386,13 @@ uint256 constant TO_DEG = 57295779513224454144;
         if (altitude <= 0) {
             flowerSvg = string.concat(flowerParts.stick, transformContainer, flowerParts.blossom, flowerParts.front , '</g>');
 
+     if(flowerType == FlowerType.ICEFLOWER) {
+                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azis", "0");
+            }
             flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azi", "0");
             flowerSvg = NDUtils.replaceFirst(flowerSvg, "$alt", "0");
 
-            if(flowerType == FlowerType.GENTIAN) {
-                  flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azis", "0");
-            }
+       
         } else {
             if (NDUtils.abs(angle) >= 9000) {
                 flowerSvg = string.concat(flowerParts.stick, transformContainer, flowerParts.blossom, flowerParts.front, '</g>');
@@ -441,12 +421,14 @@ uint256 constant TO_DEG = 57295779513224454144;
                 angle = -2750;
             } 
 
-            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azi", string.concat(NDUtils.renderDecimal(angle), "deg"));
-            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$alt", string.concat(NDUtils.renderDecimal(altitude), "deg"));
-            if(flowerType == FlowerType.GENTIAN) {
+                 if(flowerType == FlowerType.ICEFLOWER) {
                   flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azis", string.concat(NDUtils.renderDecimal(angle), "deg"));
             }
         }
+
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$azi", string.concat(NDUtils.renderDecimal(angle), "deg"));
+            flowerSvg = NDUtils.replaceFirst(flowerSvg, "$alt", string.concat(NDUtils.renderDecimal(altitude), "deg"));
+       
 
         if(hasPot) {
             if (flowerType == FlowerType.ROSE) {
@@ -458,119 +440,51 @@ uint256 constant TO_DEG = 57295779513224454144;
                 flowerSvg = string.concat('<rect y="-15"  fill="#d7e0a7" x="-25"  width="50" height="50" /><rect y="-5" fill="#aa7035" width="30" height="10" x="-15" />', flowerSvg);
             }
         } 
+        flowerSvg = string.concat('<g id="fl_',tokenId.toString(),'">', flowerSvg, '</g>');
 
-
-        return NDUtils.replaceFirst(svg, "$fl", flowerSvg);
+        return flowerSvg;
     }
 
-   
-
-        function renderLighthouse(string memory svg, int altitude, uint timestamp, uint tokenId) public pure returns ( string memory) {
-
-            if (tokenId != 3) {
-                return svg;
-            }
-
-            if (altitude > 0) {
-                return svg;
-            }
-
-        
-
-            uint rotationInSeconds = 40;
-            uint progress = timestamp % rotationInSeconds * 100 / rotationInSeconds;
-            uint rotation = progress * 2 * 31415926535897932;
-
-            int xValue = Trigonometry.sin(rotation) * 810;
-
-            int yValue = 10 + Trigonometry.cos(rotation) * 68 + (68 * 1e18);
-
-            string memory xDec = NDUtils.renderDecimal(xValue / 1e16);
-            string memory yDec = NDUtils.renderDecimal(yValue / 1e16);
-
- 
-
-            string memory lightHouse =  string.concat('<polygon opacity="0.2" fill="#fff" points="' , xDec, ',', yDec, ',0,0,', xDec,',-',yDec, '"/>');
-            return NDUtils.replaceFirst(svg, "$li", lightHouse);
-
-
-        }
-
-     function renderAirplanes(     
-        string memory svg,   
-        uint timestamp, 
-        uint tokenId, uint horizonInPx) public pure returns (string memory, string memory) {
-
-            string memory salt = tokenId.toString();
-
-            string memory aeroplanes = renderMovingAsset(timestamp, salt, "aeroplane", 0, horizonInPx - 30, false, 100, 100, 120, 120, 50, 60 );
-            string memory flock = renderMovingAsset(timestamp, salt, "flock", 30, horizonInPx - 30, false, 100, 100, 300, 300, 50, 90 ); 
-            string memory foreground = renderMovingAsset(timestamp, salt, "bird-f", 0, horizonInPx + 200, false, 100, 100, 120, 120, 50, 60 );
-            string memory horizon = string.concat(aeroplanes, flock);
-            svg = NDUtils.replaceFirst(svg, "$bi", foreground);
-            return (horizon, svg);
-        }
-
-    function renderSunclock(string memory svg, int azimuth, int altitude, int heading) public pure returns (string memory) {
+        function renderSunclock(string memory svg, int azimuth, int altitude, int heading) public pure returns (string memory) {
 
         if (altitude < 0) {
-            svg = NDUtils.replaceFirst(svg, "$s", "");
+            svg = NDUtils.replaceFirst(svg, "$sh", "");
             return svg;
         }
-
-    
         int256 angle = getDiffAngle(azimuth, heading);
-
-        int angleRad = angle * int(TO_RAD) / 1e4;
-
-        int cosOfAngle = NDUtils.abs(Trigonometry.cos(angleRad) / 1e14 );
-
-        int cosAngleAdjustment = 6000 +  (50000000/cosOfAngle); 
-
-        int shadowLength = cosAngleAdjustment * 30;
-
-        shadowLength = shadowLength > 1000000 ? int(1000000) : shadowLength;
-        shadowLength /= 1e2;
-        angle /= 1e2;
-
-        string memory shadowSVG = string.concat('<rect x="817" y="664" opacity="0.6" fill="#649624" width="3.6" height="', NDUtils.renderDecimal(shadowLength) ,'" transform="rotate(', NDUtils.renderDecimal(angle), ' 819 664)"/>');
+        int radiusX = 100e4;
+        int radiusY = 40e4;
+        int angleInRadian = (angle + 90e4) * int(TO_RAD) / 1e4; 
+        int radiusAtAngle = (radiusX * radiusY) / int(sqrt(uint( radiusX * radiusX /1e4 * Trigonometry.sin(angleInRadian) * Trigonometry.sin(angleInRadian) / 1e36 + radiusY * radiusY / 1e4 * Trigonometry.cos(angleInRadian) * Trigonometry.cos(angleInRadian) / 1e36)));
+        int altitudeInRadian = altitude * int(TO_RAD) / 1e2;
+        int finalLength = (radiusAtAngle * Trigonometry.cos(altitudeInRadian) / 1e14) / ((Trigonometry.cos(altitudeInRadian) + Trigonometry.sin(altitudeInRadian))/1e14);
+        finalLength = finalLength / 1e4;
+        angle = angle / 1e2;
+        string memory shadowSVG = string.concat('<rect x="817" y="664" opacity="0.6" fill="#649624" width="3.6" height="', NDUtils.renderDecimal(int(finalLength)) ,'" transform="rotate(', NDUtils.renderDecimal(angle), ' 819 664)"/>');
     
         svg = NDUtils.replaceFirst(svg, "$sh", shadowSVG);
         return svg;
     }
 
-
-
-    function generateClouds(int skyHeight, uint nonce) public pure returns (string memory) {
-        uint numClouds = NDUtils.randomNum(nonce++, 1, 5);
-        string memory clouds = '';
-        for (uint i = 0; i < numClouds; i++) {
-
-            uint layers = NDUtils.randomNum(nonce++, 1, 2);
-            uint y = NDUtils.randomNum(nonce++, 0, uint(skyHeight));
-            int baseX = int(NDUtils.randomNum(nonce++, 0, 1090)) - 10;
-      
-            for (uint j = 0; j < layers; j++) {
-                int x = int(NDUtils.randomNum(nonce++, 10, 50));
-                // shuffle whetver x is positive or negative
-                if (NDUtils.randomNum(nonce++, 0, 1) == 1) {
-                    x = -x;
-                }
-                x += baseX;
-                uint width = NDUtils.randomNum(nonce++, 80, 100);
-                uint height = 30;
-
-                //concat clouds in one string
-                clouds = string.concat(clouds, '<path fill="#FFF" d="M', x.toStringSigned(), ' ', y.toString(), 'h', width.toString(), 'v', height.toString(), 'H', x.toStringSigned(), 'z"/>');
-                y += height;
+    function pushElement(
+        SceneElement[] memory array,  
+        uint index,             
+        SceneElement memory newElement 
+    ) public pure returns (SceneElement[] memory) {
+        
+        if (index >= array.length) {
+            SceneElement[] memory newArray = new SceneElement[](index + 1);
+                        for (uint i = 0; i < array.length; i++) {
+                newArray[i] = array[i];
             }
-        } 
-        clouds = string.concat('<g opacity="0.8">', clouds, '</g>');
-        return clouds;
+            newArray[index] = newElement;
+            
+            return newArray;
+        } else {
+            array[index] = newElement;
+            return array;
+        }
     }
 
-
-
-
-
+    
 }

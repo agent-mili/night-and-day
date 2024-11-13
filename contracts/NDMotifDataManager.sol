@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.25;
 
 import "./motifs/Motifs0.sol";
@@ -6,7 +8,6 @@ import "./motifs/GenericMotifs.sol";
 import "./motifs/GenericMotifsSVG.sol";
 import "./motifs/Assets.sol";
 
-import "forge-std/console.sol";
 import"./NDDecoder.sol";
 import "./NDUtils.sol";
 
@@ -18,58 +19,53 @@ contract NDMotifDataManager {
     
 
     uint constant GENERICS_COUNT = 100;
-    uint constant GENERICS_START_INDEX = 19;
+    uint constant GENERICS_START_INDEX = 21;
     uint constant BEACHES_START_INDEX = GENERICS_START_INDEX;
     uint constant SKYSCRAPERS_START_INDEX = GENERICS_START_INDEX + GENERICS_COUNT;
     uint constant LANDSCAPE_START_INDEX = GENERICS_START_INDEX + GENERICS_COUNT + GENERICS_COUNT;
 
-    string constant MOTIF_TYPE_SIGHT_SEEING = "Sightseeing";
-    string constant MOTIF_TYPE_BEACH = "Beach";
-    string constant MOTIF_TYPE_SKYSCRAPER = "Skyscraper";
-    string constant MOTIF_TYPE_LANDSCAPE = "Landscape";
+
 
 
     string public assets = Assets.getAssets();
 
      
-
-
-
     IMotifData public sightSeeing1;
     IMotifData public sightSeeing2;
+    IMotifData public sightSeeing3;
     GenericMotifs public genericMotifs;
     GenericMotifsSVG public genericMotifsSVG;
 
 
-
-
-     constructor(address _genericMotifAddress, address  _genericMotifSVGAddress ,address _motifAdress1, address _motifAdress2)  {
+     constructor(address _genericMotifAddress, address  _genericMotifSVGAddress ,address _motifAdress1, address _motifAdress2,  address _motifAdress3) {
 
         genericMotifs =  GenericMotifs(_genericMotifAddress);
         genericMotifsSVG =  GenericMotifsSVG(_genericMotifSVGAddress);
         sightSeeing1 =  Motifs0(_motifAdress1);
         sightSeeing2 =  Motifs1(_motifAdress2);
+        sightSeeing3 =  Motifs1(_motifAdress3);
      }
 
     function getMotifByTokenId(uint256 tokenId) public view returns (Motif memory) {
         
-        require(tokenId < 320, "Token ID out of range");
         bytes memory motifData;
 
         Motif memory motif;
         MotifType motifType;
 
 
-        if (tokenId < 19) {
+        if (tokenId < GENERICS_START_INDEX ) {
             // handle sight seeing motifs
             motifType = MotifType.SIGHT_SEEING;
 
-           if (tokenId < 11) {
+           if (tokenId < 7) {
                motifData = sightSeeing1.getMotifData(tokenId);
               }     
-           else  {
+           else if (tokenId < 14) {
 
-               motifData =  sightSeeing2.getMotifData(tokenId -11);
+               motifData =  sightSeeing2.getMotifData(tokenId -7);
+           } else {
+               motifData = sightSeeing3.getMotifData(tokenId - 14);
            }
  
 
@@ -80,44 +76,45 @@ contract NDMotifDataManager {
             motif = getGenericMotif(tokenId);
         }
 
+        // set common sky scenes
+        bytes memory skyScenesBytes = genericMotifsSVG.getSkyMovingScenes();
+        (MovingScene[] memory skyMovingScenes, ) = NDDecoder.decodeMovingScene(skyScenesBytes,0);
+
+        skyMovingScenes[0].assets[0].maxY = motif.horizon - 20;
+        skyMovingScenes[0].assets[1].maxY = motif.horizon - 20;
+
+        string memory birdType = motif.motifType == MotifType.BEACH || motif.motifType == MotifType.SKYSCRAPER  || tokenId == 0 || tokenId == 1 || tokenId == 3 || tokenId == 14 ? "gull-f" : "bird-f";
+        skyMovingScenes[1].assets[0].assetName = birdType;
+        skyMovingScenes[1].assets[0].maxY = motif.horizon + 200;
+
+        motif.movingScenes[motif.movingScenes.length-2] = skyMovingScenes[0];
+        motif.movingScenes[motif.movingScenes.length-1] = skyMovingScenes[1];
+
 
  
         return motif;
     }
 
-
     function getGenericMotif(uint256 tokenId) public view returns (Motif memory) {
 
-        GenericMotif memory genericMotif;
 
         bytes memory motifData;
 
-        Motif memory motif;
-        MotifType motifType = tokenId < 119 ? MotifType.BEACH : tokenId < 219 ? MotifType.SKYSCRAPER : MotifType.LANDSCAPE;
-        bytes memory flzBytesSVG;
+       
+        MotifType motifType = tokenId < SKYSCRAPERS_START_INDEX ? MotifType.BEACH : tokenId < LANDSCAPE_START_INDEX ? MotifType.SKYSCRAPER : MotifType.LANDSCAPE;
 
         (bytes memory flzGenericMotifs, uint startIndex, uint endIndex) = genericMotifs.getGeneric(tokenId - GENERICS_START_INDEX);
         
-        bytes memory genericMotifs = NDDecoder.flzDecompress(flzGenericMotifs);
+        bytes memory genericMotifSVG = NDDecoder.flzDecompress(flzGenericMotifs);
         motifData = new bytes(endIndex - startIndex);
         for (uint i = startIndex; i < endIndex; i++) {
-            motifData[i - startIndex] = genericMotifs[i];
+            motifData[i - startIndex] = genericMotifSVG[i];
         }
         
         
-        flzBytesSVG = genericMotifsSVG.getGenericSVG(motifType);
+        bytes memory genericFlzBytes = genericMotifsSVG.getGenericSVG(motifType);
 
-        string memory svg = string(NDDecoder.flzDecompress(flzBytesSVG));
-
-        genericMotif = NDDecoder.decodeGenericMotif(motifData);
-        motif.name = genericMotif.name;
-        motif.lat = genericMotif.lat;
-        motif.lng = genericMotif.lng;
-        motif.heading = genericMotif.heading;
-        motif.svg = svg;
-        (motif.scenes, ) = NDDecoder.decodeSceneIMotif(genericMotifsSVG.getScene(motifType),0);
-
-        motif.horizon = int(genericMotifsSVG.getHorizon(motifType));
+        Motif memory motif = NDDecoder.decodeGenericMotif(motifData, genericFlzBytes);
         motif.motifType = motifType;
         return motif;
 
@@ -126,9 +123,9 @@ contract NDMotifDataManager {
 
     function getFlowerType(uint256 tokenId) public view returns (FlowerType) {
 
-        uint8[19] memory attractionFlowerTypes = [uint8(0), 0, 2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        uint8[21] memory attractionFlowerTypes =  [ uint8(2),2, 0,1, 1,1,0,0,0,0,3,0,0,0,0,1,1,0,0,0,0];
        
-       if (tokenId < 19)
+       if (tokenId < GENERICS_START_INDEX)
        return FlowerType(attractionFlowerTypes[tokenId]);
        else return genericMotifs.getFlowerType(tokenId);
 
@@ -156,22 +153,21 @@ contract NDMotifDataManager {
     }
 
     //
-    function getAssetInScene() public view returns (AssetInScene[]  memory) {
+    function getAssetInScene() public pure returns (AssetInScene[]  memory) {
         bytes memory assetsInScene = Assets.getAssetsInScene();
 
         return NDDecoder.decodeAssetsForScenes(assetsInScene);
     }
 
-    function getFlower(FlowerType flowerType) public view returns (FlowerParts memory) {
+    function getFlower(FlowerType flowerType) public pure returns (FlowerParts memory) {
 
-        console.log("getFlower");
-        console.logUint(uint(flowerType));
+      
 
         if (flowerType == FlowerType.SUNFLOWER) {
             return getSunflower();
         }
-        else if (flowerType == FlowerType.GENTIAN) {
-            return getGentian();
+        else if (flowerType == FlowerType.ICEFLOWER) {
+            return getIceFlower();
         }
         else if (flowerType == FlowerType.ROSE) {
             return getRose();
@@ -179,16 +175,16 @@ contract NDMotifDataManager {
         else if (flowerType == FlowerType.MOONFLOWER) {
             return getMoonflower();
         }
+        revert("Invalid path reached");
+        
     }
 
 
-    function getSunflower() public pure returns (FlowerParts memory) {
+    function getSunflower() internal pure returns (FlowerParts memory) {
 
         FlowerParts memory flowerSVG;
 
 
-        string memory fullBlossom;
-        string memory fullFlowerStick;
         int16[2] memory petalRotationAnchor = [int16(0), int16(-75)];
         flowerSVG.stick = '<g fill="#9bb224"><rect x="-4" y="-74" width="8" height="74"/>$l</g>';
         flowerSVG.blossom = '<g fill="gold"><path d="M21-85C28-91 28-102 28-102C28-102 18-102 11-95C5-89 5-78 5-78C5-78 15-79 21-85Z" id="s-leaf"/>$1</g>';
@@ -206,7 +202,7 @@ contract NDMotifDataManager {
 }
 
 
-function getGentian() public pure returns (FlowerParts memory) {
+function getIceFlower() internal pure returns (FlowerParts memory) {
 
     FlowerParts memory flowerSVG;
 
@@ -231,7 +227,7 @@ function getGentian() public pure returns (FlowerParts memory) {
 }
 
 
-function getRose() public pure returns (FlowerParts memory) {
+function getRose() internal pure returns (FlowerParts memory) {
 
     FlowerParts memory flowerSVG;
     int[] memory petalRotations = NDDecoder.bytesToIntArray(hex"0048009000d80120", 2);
@@ -253,7 +249,7 @@ function getRose() public pure returns (FlowerParts memory) {
 
 }
 
-function getMoonflower() public pure returns (FlowerParts memory) {
+function getMoonflower() internal pure returns (FlowerParts memory) {
 
     FlowerParts memory flowerSVG;
 

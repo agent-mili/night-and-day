@@ -12,7 +12,7 @@ enum RenderDataType {
 }
 
 enum FlowerType {
-    SUNFLOWER,ROSE,GENTIAN, MOONFLOWER
+    SUNFLOWER,ROSE,ICEFLOWER, MOONFLOWER
 }
 
 
@@ -25,11 +25,6 @@ enum BeachColor {
     PINK, GREEN, BLACK, GOLD, WHITE, CREME, RED
 }
 
-enum SkylineType {
-    MEGA, LARGE, MIDI,MINI
-}
-
-
 
 enum MotifType {
     SIGHT_SEEING, BEACH, SKYSCRAPER, LANDSCAPE
@@ -40,6 +35,28 @@ struct FlowerParts {
     string  front;
     string  blossom;
     string  stick;
+}
+
+struct MovingScene {
+    string placeholder ;
+    bool horizonUp ;
+    MovingSceneAsset[] assets ;
+
+}
+
+struct MovingSceneAsset {
+
+    string assetName ;
+    uint minScale;
+    uint maxScale ;
+    uint minY ;
+    uint maxY ;
+    uint duration ;
+    uint probability ;
+    uint checkInterval ;
+    uint possibleOffset ;
+    DAYTIME dayTime ;
+
 }
 
 
@@ -69,28 +86,28 @@ struct AssetInScene {
 
     struct SceneInMotif {
         string placeHolder;
-        uint8[] assets;
-        int[4] area;
-        uint scale;
+        Scene[] sceneDetails;
     }
 
+struct Scene {
 
-struct GenericMotif {
-    string name;
-    int lat;
-    int lng;
-    int heading;
+    int[4] area;
+    uint[] assets;
+    uint scale;
 }
+
+
 
 struct Motif {
         string name;
         int lat;
         int lng;
         int heading;
-        int horizon;
+        uint horizon;
         string svg;
         SceneInMotif[] scenes;
         Replacement[] replacements;
+        MovingScene[] movingScenes;
         MotifType motifType;
     }
 
@@ -100,15 +117,16 @@ struct BeachTraits {
     string skinColor;
     string shortsColor;
     string shortsColorAttribute;
+    string beverageAttribute;
     string towelColor;
     string towelColorAttribute;
-    uint accessoireType;
     string shortsPattern;
     string towelPattern;
     string shortsSVG;
     string towelSVG;
     uint jellyTypeId;
     string jellyColor;
+    string beverage;
 
 }
 
@@ -117,28 +135,27 @@ struct CityTraits {
     address priceFeed;
     string skylineSVG;
     string displaySVG;
+    string beverageAttribute;
     string tableSVG;
     uint displayType;
     uint skyLinetype;
     bool isCoastel;
-    uint accessoireType;
     string tableColor;
     uint catTypeId;
     string catColor;
+    string beverage;
 }
 
 
 struct LandscapeTraits {
     string attributes;
-    string accessoireType;
-    string climateZoneColor;
     uint climateZoneIndex;
     string before;
-    string front;
     bool hasCity;
     string skinColor;
     string shirtColor;
     string shirtColorAttribute;
+    string beverageAttribute;
     string shirtPattern;
     string hat;
     string pantsColor;
@@ -150,6 +167,7 @@ struct LandscapeTraits {
     string artistSVG;
     uint catTypeId;
     string catColor;
+    string beverage;
 
 }
 
@@ -160,13 +178,15 @@ struct SVGData {
         string skyColor;
         string moonSVG;
         string nightSVG;
+        string replacements;
         string waterColor;
         string cloudsSVG;
         string skySceneSVG;
+        string flowerSVG;
 
      }
 
-          struct SunMoon {
+        struct SunMoon {
         uint sunrise;
         uint sunset;
         int altitude;
@@ -188,6 +208,7 @@ struct SVGData {
         string decimalScaleX;
         string decimalScaleY;
     }
+
 
 
 interface IMotifData {

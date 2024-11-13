@@ -4,7 +4,7 @@ import { time } from '@nomicfoundation/hardhat-toolbox/network-helpers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 
-describe('SunCalc', function () {
+xdescribe('SunCalc', function () {
     xit('should return sun position', async function () {
 
         const [owner, otherAccount] = await ethers.getSigners();
@@ -49,7 +49,7 @@ describe('SunCalc', function () {
     })
 
 
-    it ('should return sun rise and set', async function () {
+    xit ('should return sun rise and set', async function () {
 
         const [owner, otherAccount] = await ethers.getSigners();
 

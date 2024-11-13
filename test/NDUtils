@@ -27,7 +27,8 @@ uint8[] jellyFishWeightings = [38, 32, 25,4];
 
 uint8[] flowerWeightings = [40, 32, 16, 12];
 
-uint8[] nftWeightings = [0, 1, 10,9, 12, 11, 10, 10, 13, 11, 11, 13, 16, 11, 11, 8, 13, 6, 13];
+uint8[] nftWeightings = [5, 9, 7, 11, 9, 10, 14, 8, 7, 10, 11, 10, 11, 12, 9, 11, 9, 12, 11, 13, 10];
+
 
 uint8[] hatWeightings = [0,15,22,19,12,17,15];
 
@@ -46,6 +47,8 @@ uint8[] shortPatternWeightings = [23,40,20,3,13];
 uint8[] towelColors = [24,22,28,25];
 
 uint8 [] towelPatterns = [21,78];
+
+uint8[] beverageWeightings = [25,25,15,20,9,6];
 
 
 
@@ -129,7 +132,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[4] memory indexes;
 
 
-        for (uint256 i = 19; i < 319; i++) {
+        for (uint256 i = 21; i < 321; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Flower', i.toString()), 0,99);
             indexes[usew(flowerWeightings, result)]++;
         }
@@ -146,11 +149,13 @@ uint8 [] towelPatterns = [21,78];
     }
 
     function testNFTDistribution () public view {
-        uint8[19] memory indexes;
+        uint8[21] memory indexes;
 
+         //   console.log("NFT Result");
 
-        for (uint256 i = 19; i < 319; i++) {
-            uint256 result = NDUtils.randomNum(string.concat('NFT', i.toString()), 0,189);
+        for (uint256 i = 21; i < 321; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('NFT', i.toString()), 0,209);
+     //       console.logUint(result);
             indexes[usew(nftWeightings, result)]++;
         }
 
@@ -169,7 +174,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[7] memory indexes;
 
 
-        for (uint256 i = 219; i < 319; i++) {
+        for (uint256 i = 221; i < 321; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Hat', i.toString()), 0,99);
             indexes[usew(hatWeightings, result)]++;
         }
@@ -190,7 +195,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[5] memory patternIndexes;
 
 
-        for (uint256 i = 219; i < 319; i++) {
+        for (uint256 i = 221; i < 321; i++) {
             uint256 result = NDUtils.randomNum(string.concat('ShirtColor', i.toString()), 0,99);
             uint256 result2 = NDUtils.randomNum(string.concat('ShirtPattern', i.toString()), 0,99);
             uint indexColor = usew(shirtColorWeightings, result);
@@ -229,7 +234,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[5] memory indexes;
 
 
-        for (uint256 i = 219; i < 319; i++) {
+        for (uint256 i = 221; i < 321; i++) {
             uint256 result = NDUtils.randomNum(string.concat('ShirtPattern', i.toString()), 0,99);
             indexes[usew(shirtPatternWeightings, result)]++;
         }
@@ -249,7 +254,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[4] memory indexes;
 
 
-        for (uint256 i = 119; i < 219; i++) {
+        for (uint256 i = 121; i < 221; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Display', i.toString()), 0,99);
             indexes[usew(displayDevices, result)]++;
         }
@@ -269,7 +274,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[5] memory indexes;
 
 
-        for (uint256 i = 119; i < 219; i++) {
+        for (uint256 i = 121; i < 221; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Chart', i.toString()), 0,99);
             indexes[usew(chartTypeWeightings, result)]++;
         }
@@ -292,7 +297,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[5] memory patternIndexes;
 
 
-        for (uint256 i = 19; i < 119; i++) {
+        for (uint256 i = 21; i < 121; i++) {
             uint256 result = NDUtils.randomNum(string.concat('ShortColor', i.toString()), 0,99);
             uint256 result2 = NDUtils.randomNum(string.concat('ShortPattern', i.toString()), 0,99);
             uint indexColor = usew(shortColorWeightings, result);
@@ -332,7 +337,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[5] memory indexes;
 
 
-        for (uint256 i = 19; i < 119; i++) {
+        for (uint256 i = 21; i < 121; i++) {
             uint256 result = NDUtils.randomNum(string.concat('ShortPattern', i.toString()), 0,99);
             indexes[usew(shortPatternWeightings, result)]++;
         }
@@ -353,7 +358,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[2] memory patternIndexes;
         // ann array of both arrays
 
-        for (uint256 i = 19; i < 119; i++) {
+        for (uint256 i = 21; i < 121; i++) {
             uint256 result = NDUtils.randomNum(string.concat('TowelColor', i.toString()), 0,99);
             uint256 result2 = NDUtils.randomNum(string.concat('TowelPattern', i.toString()), 0,99);
 
@@ -396,7 +401,7 @@ uint8 [] towelPatterns = [21,78];
        
             uint8[2] memory indexes;
 
-        for (uint256 i = 19; i < 119; i++) {
+        for (uint256 i = 21; i < 121; i++) {
              uint256 result = NDUtils.randomNum(string.concat('TowelPattern', i.toString()), 0,99);
             indexes[usew(towelPatterns, result)]++;
         }
@@ -416,7 +421,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[4] memory indexes;
 
 
-        for (uint256 i = 19; i < 119; i++) {
+        for (uint256 i = 21; i < 121; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Jelly', i.toString()), 0,99);
             indexes[usew(jellyFishWeightings, result)]++;
         }
@@ -437,7 +442,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[4] memory indexes;
 
 
-        for (uint256 i = 119; i < 219; i++) {
+        for (uint256 i = 121; i < 221; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Cat', i.toString()), 0,99);
             indexes[usew(catColorCityWeightings, result)]++;
         }
@@ -458,7 +463,7 @@ uint8 [] towelPatterns = [21,78];
         uint8[4] memory indexes;
 
 
-        for (uint256 i = 219; i < 319; i++) {
+        for (uint256 i = 221; i < 321; i++) {
             uint256 result = NDUtils.randomNum(string.concat('Cat', i.toString()), 0,99);
             indexes[usew(catColorLandscapeWeightings, result)]++;
         }
@@ -475,4 +480,68 @@ uint8 [] towelPatterns = [21,78];
         assertTrue(true, "Test passed");
 
     }
+
+    function testBeverageWeightingsDistribution () public view {
+        uint8[6] memory indexes;
+
+        for (uint256 i = 21; i < 321; i++) {
+            uint256 result = NDUtils.randomNum(string.concat('Beverage', i.toString()), 0,99);
+            indexes[usew(beverageWeightings, result)]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index Beverage:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+
+        assertTrue(true, "Test passed");
+
+}
+
+function testSkinColorDistributionBeach() public view {
+        uint8[6] memory indexes;
+
+        for (uint256 i = 21; i < 121; i++) {
+            uint256 result = i % 6;
+            indexes[result]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes Skin Color Beach:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index SkinColor:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+
+        assertTrue(true, "Test passed");
+
+}
+
+function testSkinColorDistributionLandscape() public view {
+        uint8[6] memory indexes;
+
+        for (uint256 i = 221; i < 321; i++) {
+            uint256 result =  i % 6;
+            indexes[result]++;
+        }
+
+        //loggen der indexes
+        console.log("Indexes Skin Color Landscape:");
+        for (uint256 i = 0; i < indexes.length; i++) {
+            console.log("Index SkinColor:");
+            console.logUint(i);
+            console.log("Value:");
+            console.logUint(indexes[i]);
+        }
+
+        assertTrue(true, "Test passed");
+
+}
+
 }
