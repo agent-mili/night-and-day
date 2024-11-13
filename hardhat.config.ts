@@ -43,17 +43,17 @@ networks: {
    // gasPrice: 50000000000, // 50 gwei
 
     forking: {
-      url: "https://mainnet.infura.io/v3/cd6ed9e0e4c94f8cb914a030ddd9cdd7",
+      url: "https://mainnet.infura.io/v3/",
       blockNumber:19482130,
     },
   },
   sepolia: {
-    url: "https://sepolia.infura.io/v3/cd6ed9e0e4c94f8cb914a030ddd9cdd7",
-    accounts: ["de0b11dd54e56d5c79b17d7a61a54b7359bcff640b4ec752e323101bbd7f7b40"],
+    url: "https://sepolia.infura.io/v3/",
+    accounts: [""],
 },
 
 mainnet: {
-  url: "https://mainnet.infura.io/v3/cd6ed9e0e4c94f8cb914a030ddd9cdd7",
+  url: "https://mainnet.infura.io/v3/",
   ledgerAccounts : ["0x730C4EDAc77C64605267189F9dc885D67c27d910"],
   gasPrice: 4000000000, // 40 gwei
 },
